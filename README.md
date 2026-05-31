@@ -30,12 +30,12 @@ ImGuiThemes.theme("Nord")(CImGui.GetStyle())
 
 ### Live picker
 
-Drop this single call anywhere inside your imgui frame and it shows a standalone window to
-switch themes on the fly:
+Drop this single call anywhere inside your imgui frame and it shows a standalone window of
+radio buttons (one per theme, wrapping to the window width) to switch themes in one click:
 
 ```julia
 ImGuiThemes.theme_picker()                  # window = true by default
-ImGuiThemes.theme_picker(; window = false)  # or render just the combo inline
+ImGuiThemes.theme_picker(; window = false)  # or render the buttons inline
 ```
 
 ### Demo

@@ -130,24 +130,30 @@ const _picker_state = Ref{Union{Nothing,String}}(nothing)
 """
     theme_picker(; window = true, title = "ImGui Themes", state = _picker_state)
 
-Draw a combo listing all themes; selecting one applies it live. With `window = true`
-(default) it renders in its own imgui window, so a single call anywhere in an app shows a
-standalone theme browser; with `window = false` it draws the combo inline. Must be called
-inside an active imgui frame. Returns the currently-selected theme name (or `nothing`).
+Draw all themes as radio buttons that wrap to the window width; selecting one applies it
+live (one click, no dropdown). With `window = true` (default) it renders in its own imgui
+window, so a single call anywhere in an app shows a standalone theme browser; with
+`window = false` it draws the buttons inline. Must be called inside an active imgui frame.
+Returns the currently-selected theme name (or `nothing`).
 """
 function theme_picker(; window::Bool = true, title::AbstractString = "ImGui Themes", state::Ref = _picker_state)
     opened = window ? CImGui.Begin(title) : true
     if opened
-        if CImGui.BeginCombo("Theme", something(state[], "<select>"))
-            for t in THEMES
-                sel = state[] == t.name
-                if CImGui.Selectable(string(t.name, "  (", join(t.tags, ", "), ")"), sel)
-                    state[] = t.name
-                    apply_theme!(t.name)
-                end
-                sel && CImGui.SetItemDefaultFocus()
+        style = CImGui.GetStyle()
+        spacing = unsafe_load(style.ItemSpacing).x
+        inner = unsafe_load(style.ItemInnerSpacing).x
+        frame_h = CImGui.GetFrameHeight()
+        right_x = CImGui.GetCursorScreenPos().x + CImGui.GetContentRegionAvail().x
+        radio_width(name) = frame_h + inner + CImGui.CalcTextSize(name).x
+        for (i, t) in enumerate(THEMES)
+            if CImGui.RadioButton(t.name, state[] == t.name)
+                state[] = t.name
+                apply_theme!(t.name)
             end
-            CImGui.EndCombo()
+            if i < length(THEMES)  # keep the next button on this line only if it fits
+                next_x = CImGui.GetItemRectMax().x + spacing + radio_width(THEMES[i + 1].name)
+                next_x < right_x && CImGui.SameLine()
+            end
         end
     end
     window && CImGui.End()
