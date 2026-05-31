@@ -1,0 +1,82 @@
+# White is White — HelloImGui / pthom/hello_imgui, src/hello_imgui/impl/imgui_theme.cpp
+# ThemesImpl::WhiteIsWhite() = ShadesOfGray() + ValueMultiplierFront(0.94) +
+#   ValueMultiplierBg(7.0) + ValueMultiplierFrameBg(0.91) + _ColorSetValue(FrameBg, 0.99)
+# Method B: ground-truth values from imgui-bundle 1.92.801 (theme_to_style),
+# all colors transcribed exactly; WindowBg/ChildBg/PopupBg clamped from >1 to 1.0 (the
+# ValueMultiplierBg(7.0) overshoots; rendering clamps to white, which is the intent).
+# Colors absent from CImGui.jl (CheckboxSelectedBg, DragDropTargetBg, UnsavedMarker) omitted.
+# NB: `red`/`green`/`blue`/`alpha` are exported Colors accessors — never use them as local names.
+
+push!(_CURATED, Theme(
+    name        = "White is White",
+    author      = "Pascal Thomet / HelloImGui",
+    description = "Gray variations with very bright background (almost white)",
+    tags        = ["light"],
+    style       = Dict{Symbol,Any}(
+        :frameBorderSize => 1.0,
+        :frameRounding   => 3.0,
+    ),
+    colors = Dict{Symbol,RGBA{Float32}}(
+        :Text                    => RGBA{Float32}(0.0980392173f0,     0.0980392173f0,     0.0980392173f0,     1.0f0),
+        :TextDisabled            => RGBA{Float32}(0.4980392158f0,     0.4980392158f0,     0.4980392158f0,     1.0f0),
+        :WindowBg                => RGBA{Float32}(1.0f0,              1.0f0,              1.0f0,              1.0f0),  # clamped from 6.643
+        :ChildBg                 => RGBA{Float32}(1.0f0,              1.0f0,              1.0f0,              1.0f0),  # clamped from 6.643
+        :PopupBg                 => RGBA{Float32}(1.0f0,              1.0f0,              1.0f0,              1.0f0),  # clamped from 7.0
+        :Border                  => RGBA{Float32}(0.5640000105f0,     0.5640000105f0,     0.5640000105f0,     1.0f0),
+        :BorderShadow            => RGBA{Float32}(0.0f0,              0.0f0,              0.0f0,              0.0f0),
+        :FrameBg                 => RGBA{Float32}(0.9900000095f0,     0.9900000095f0,     0.9900000095f0,     1.0f0),
+        :FrameBgHovered          => RGBA{Float32}(0.6232016683f0,     0.7153217196f0,     0.7888627648f0,     0.2000000030f0),
+        :FrameBgActive           => RGBA{Float32}(0.6232016683f0,     0.7153217196f0,     0.7888627648f0,     1.0f0),
+        :TitleBg                 => RGBA{Float32}(0.4629223943f0,     0.4969836175f0,     0.5418823957f0,     0.8619999886f0),
+        :TitleBgActive           => RGBA{Float32}(0.5425090790f0,     0.5843115449f0,     0.6377255321f0,     1.0f0),
+        :TitleBgCollapsed        => RGBA{Float32}(0.1209097952f0,     0.1278768778f0,     0.1363921613f0,     0.9724000096f0),
+        :MenuBarBg               => RGBA{Float32}(0.8072941303f0,     0.8072941303f0,     0.8072941303f0,     1.0f0),
+        :ScrollbarBg             => RGBA{Float32}(0.8072941303f0,     0.8072941303f0,     0.8072941303f0,     1.0f0),
+        :ScrollbarGrab           => RGBA{Float32}(0.6450980306f0,     0.6450980306f0,     0.6450980306f0,     1.0f0),
+        :ScrollbarGrabHovered    => RGBA{Float32}(0.0f0,              0.0f0,              0.0f0,              0.2000000030f0),
+        :ScrollbarGrabActive     => RGBA{Float32}(0.0f0,              0.0f0,              0.0f0,              0.5000000000f0),
+        :CheckMark               => RGBA{Float32}(0.0921568647f0,     0.0921568647f0,     0.0921568647f0,     1.0f0),
+        :SliderGrab              => RGBA{Float32}(0.6450980306f0,     0.6450980306f0,     0.6450980306f0,     1.0f0),
+        :SliderGrabActive        => RGBA{Float32}(0.0f0,              0.0f0,              0.0f0,              0.5000000000f0),
+        :Button                  => RGBA{Float32}(0.8072941303f0,     0.8072941303f0,     0.8072941303f0,     1.0f0),
+        :ButtonHovered           => RGBA{Float32}(0.6232016683f0,     0.7153217196f0,     0.7888627648f0,     0.2000000030f0),
+        :ButtonActive            => RGBA{Float32}(0.6232016683f0,     0.7153217196f0,     0.7888627648f0,     1.0f0),
+        :Header                  => RGBA{Float32}(0.8072941303f0,     0.8072941303f0,     0.8072941303f0,     1.0f0),
+        :HeaderHovered           => RGBA{Float32}(0.6232016683f0,     0.7153217196f0,     0.7888627648f0,     0.2000000030f0),
+        :HeaderActive            => RGBA{Float32}(0.6232016683f0,     0.7153217196f0,     0.7888627648f0,     1.0f0),
+        :Separator               => RGBA{Float32}(0.4542227685f0,     0.4542227685f0,     0.4681568742f0,     0.5000000000f0),
+        :SeparatorHovered        => RGBA{Float32}(0.5755749345f0,     0.6351820230f0,     0.7040784359f0,     0.7799999714f0),
+        :SeparatorActive         => RGBA{Float32}(0.5755749345f0,     0.6351820230f0,     0.7040784359f0,     1.0f0),
+        :ResizeGrip              => RGBA{Float32}(0.7762187719f0,     0.8412447572f0,     0.9178823233f0,     0.2000000030f0),
+        :ResizeGripHovered       => RGBA{Float32}(0.7762187719f0,     0.8412447572f0,     0.9178823233f0,     0.6700000167f0),
+        :ResizeGripActive        => RGBA{Float32}(0.7762187719f0,     0.8412447572f0,     0.9178823233f0,     0.9499999881f0),
+        :InputTextCursor         => RGBA{Float32}(0.9399999976f0,     0.9399999976f0,     0.9399999976f0,     1.0f0),
+        :TabHovered              => RGBA{Float32}(0.7317900062f0,     0.7456080317f0,     0.7613999844f0,     0.8000000119f0),
+        :Tab                     => RGBA{Float32}(0.7554779649f0,     0.7574520111f0,     0.7613999844f0,     0.8600000143f0),
+        :TabSelected             => RGBA{Float32}(0.7402499318f0,     0.7619639635f0,     0.7895999551f0,     1.0f0),
+        :TabSelectedOverline     => RGBA{Float32}(0.7790720463f0,     0.8442142010f0,     0.9212000370f0,     1.0f0),
+        :TabDimmed               => RGBA{Float32}(0.7649720311f0,     0.7847120762f0,     0.8084000349f0,     0.9700000286f0),
+        :TabDimmedSelected       => RGBA{Float32}(0.8287979960f0,     0.8485380411f0,     0.8741999865f0,     1.0f0),
+        :TabDimmedSelectedOverline => RGBA{Float32}(0.4699999988f0,   0.4699999988f0,     0.4699999988f0,     0.0f0),
+        :DockingPreview          => RGBA{Float32}(0.7790720463f0,     0.8442142010f0,     0.9212000370f0,     0.6999999881f0),
+        :DockingEmptyBg          => RGBA{Float32}(0.1880000085f0,     0.1880000085f0,     0.1880000085f0,     1.0f0),
+        :PlotLines               => RGBA{Float32}(0.5713725686f0,     0.5713725686f0,     0.5713725686f0,     1.0f0),
+        :PlotLinesHovered        => RGBA{Float32}(0.9399999976f0,     0.8269788623f0,     0.8114964962f0,     1.0f0),
+        :PlotHistogram           => RGBA{Float32}(0.8441568613f0,     0.8046768904f0,     0.6668839455f0,     1.0f0),
+        :PlotHistogramHovered    => RGBA{Float32}(0.9399999976f0,     0.8610399961f0,     0.7426000237f0,     1.0f0),
+        :TableHeaderBg           => RGBA{Float32}(0.7427105904f0,     0.7427106500f0,     0.7520000339f0,     1.0f0),
+        :TableBorderStrong       => RGBA{Float32}(0.3203372657f0,     0.3203372657f0,     0.3280784488f0,     1.0f0),
+        :TableBorderLight        => RGBA{Float32}(0.2283647060f0,     0.2283647060f0,     0.2322352976f0,     1.0f0),
+        :TableRowBg              => RGBA{Float32}(0.5570329428f0,     0.5570329428f0,     0.5640000105f0,     0.1500000060f0),
+        :TableRowBgAlt           => RGBA{Float32}(0.9399999976f0,     0.9399999976f0,     0.9399999976f0,     0.0599999987f0),
+        :TextLink                => RGBA{Float32}(0.7790720463f0,     0.8442142010f0,     0.9212000370f0,     1.0f0),
+        :TextSelectedBg          => RGBA{Float32}(0.7762187719f0,     0.8412447572f0,     0.9178823233f0,     0.3499999940f0),
+        :TreeLines               => RGBA{Float32}(0.4561820030f0,     0.4561820030f0,     0.4699999988f0,     0.5000000000f0),
+        :DragDropTarget          => RGBA{Float32}(0.9399999976f0,     0.9399999976f0,     0.7426000237f0,     0.8999999762f0),
+        :DragDropTargetBg        => RGBA{Float32}(0.0f0,              0.0f0,              0.0f0,              0.0f0),
+        :NavCursor               => RGBA{Float32}(0.7762187719f0,     0.8412447572f0,     0.9178823233f0,     1.0f0),
+        :NavWindowingHighlight   => RGBA{Float32}(0.9399999976f0,     0.9399999976f0,     0.9399999976f0,     0.6999999881f0),
+        :NavWindowingDimBg       => RGBA{Float32}(0.7520000339f0,     0.7520000339f0,     0.7520000339f0,     0.2000000030f0),
+        :ModalWindowDimBg        => RGBA{Float32}(0.7520000339f0,     0.7520000339f0,     0.7520000339f0,     0.3499999940f0),
+    ),
+))

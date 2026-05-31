@@ -85,6 +85,8 @@ withα(c, a) = RGBA{Float32}(red(c), green(c), blue(c), Float32(a))
 
 include("themes/solarized.jl")
 include("themes/spectrum.jl")
+include("themes/light_rounded.jl")
+include("themes/white_is_white.jl")
 
 "All themes — curated palette themes first, then the vendored ImThemes database."
 const THEMES = [_CURATED; [_parse_theme(d) for d in TOML.parsefile(_DATA)["themes"]]]

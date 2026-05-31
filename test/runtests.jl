@@ -113,6 +113,49 @@ end
     end
 end
 
+@testitem "helloimgui (light)" begin
+    using CImGui, Colors
+
+    lr = ImGuiThemes.theme("Light Rounded")
+    ww = ImGuiThemes.theme("White is White")
+    @test ImGuiThemes.mode(lr) === :light
+    @test ImGuiThemes.mode(ww) === :light
+
+    ctx = CImGui.CreateContext()
+    try
+        style = CImGui.GetStyle()
+
+        # Light Rounded: apply and check all components in [0,1]
+        ImGuiThemes.apply!(lr, style)
+        for i in 0:(Int(CImGui.ImGuiCol_COUNT) - 1)
+            c = CImGui.c_get(style.Colors, i)
+            for comp in (c.x, c.y, c.z, c.w)
+                @test isfinite(comp) && 0 ≤ comp ≤ 1
+            end
+        end
+        # WindowBg is the distinctive pinkish-white (0.9614, 0.9531, 0.9531)
+        wb = CImGui.c_get(style.Colors, CImGui.ImGuiCol_WindowBg)
+        @test wb.x ≈ 0.9613733888f0  atol=1e-6
+        @test wb.y ≈ 0.9531213045f0  atol=1e-6
+
+        # White is White: apply and check all components in [0,1]
+        ImGuiThemes.apply!(ww, style)
+        for i in 0:(Int(CImGui.ImGuiCol_COUNT) - 1)
+            c = CImGui.c_get(style.Colors, i)
+            for comp in (c.x, c.y, c.z, c.w)
+                @test isfinite(comp) && 0 ≤ comp ≤ 1
+            end
+        end
+        # WindowBg should be pure white (clamped from upstream's >1 value)
+        wb2 = CImGui.c_get(style.Colors, CImGui.ImGuiCol_WindowBg)
+        @test wb2.x ≈ 1.0f0  atol=1e-6
+        @test wb2.y ≈ 1.0f0  atol=1e-6
+        @test wb2.z ≈ 1.0f0  atol=1e-6
+    finally
+        CImGui.DestroyContext(ctx)
+    end
+end
+
 @testitem "apply all themes headless" begin
     using CImGui, Colors
     ctx = CImGui.CreateContext()
