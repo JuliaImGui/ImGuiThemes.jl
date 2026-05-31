@@ -1,6 +1,15 @@
 name = "ImGuiThemes"
-uuid = "c289c37a-a84b-4282-8f5e-d060331d2062"
+uuid = "deadbeef-cafe-face-babe-c0ffeedecade"
 authors = ["Alexander Plavin <alexander@plav.in>"]
 version = "0.1.0"
 
 [deps]
+CImGui = "5d785b6c-b76f-510e-a07c-3070796c7e87"
+Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+
+[compat]
+CImGui = "7"
+Colors = "0.12, 0.13"
+TOML = "1"
+julia = "1.10"
