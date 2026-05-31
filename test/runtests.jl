@@ -208,3 +208,77 @@ end
         CImGui.DestroyContext(ctx)
     end
 end
+
+@testitem "ktsu engine (palette→imgui port)" begin
+    using Colors
+    import ImGuiThemes: Theme
+
+    # The ktsu engine lives in src/ktsu/engine.jl and is intentionally NOT yet
+    # wired into the ImGuiThemes module (themes are a later task). Load it here
+    # into this testitem's module, which already has Colors + Theme in scope.
+    K = @__MODULE__
+    include(joinpath(pkgdir(ImGuiThemes), "src", "ktsu", "engine.jl"))
+
+    # Stage-A table fully translated.
+    @test length(K._KTSU_SLOTS) == 47
+
+    # Catppuccin Latte (light) — seeds + roles transcribed from ktsu Themes/Catppuccin/Latte.cs
+    latte = K._ktsu_theme(; name = "Catppuccin Latte", isdark = false, roles = Dict(
+        K.Neutral      => [colorant"#4c4f69", colorant"#dce0e8"],  # Text, Crust
+        K.Primary      => [colorant"#1e66f5"],
+        K.Alternate    => [colorant"#ea76cb"],
+        K.Success      => [colorant"#40a02b"],
+        K.CallToAction => [colorant"#40a02b"],
+        K.Information  => [colorant"#209fb5"],
+        K.Caution      => [colorant"#e64553"],
+        K.Warning      => [colorant"#fe640b"],
+        K.Error        => [colorant"#d20f39"],
+        K.Failure      => [colorant"#d20f39"],
+        K.Debug        => [colorant"#8839ef"],
+    ))
+
+    # Dracula (dark) — from ktsu Themes/Dracula/Dracula.cs
+    dracula = K._ktsu_theme(; name = "Dracula", isdark = true, roles = Dict(
+        K.Neutral      => [colorant"#f8f8f2", colorant"#282a36"],  # Foreground, Background
+        K.Primary      => [colorant"#bd93f9"],
+        K.Alternate    => [colorant"#ff79c6"],
+        K.Success      => [colorant"#50fa7b"],
+        K.CallToAction => [colorant"#50fa7b"],
+        K.Information  => [colorant"#8be9fd"],
+        K.Caution      => [colorant"#ffb86c"],
+        K.Warning      => [colorant"#f1fa8c"],
+        K.Error        => [colorant"#ff5555"],
+        K.Failure      => [colorant"#ff5555"],
+        K.Debug        => [colorant"#bd93f9"],
+    ))
+
+    for t in (latte, dracula)
+        @test length(t.colors) == 47                 # every slot resolved
+        for (_, c) in t.colors                        # all components in gamut, alpha forced to 1
+            for comp in (red(c), green(c), blue(c))
+                @test isfinite(comp) && 0 ≤ comp ≤ 1
+            end
+            @test alpha(c) == 1f0
+        end
+    end
+
+    @test "light" in latte.tags
+    @test "dark" in dracula.tags
+
+    # Light theme: background bright, text dark. Dark theme: the reverse.
+    L(c) = K._rgb_to_oklab(red(c), green(c), blue(c)).L
+    @test L(latte.colors[:WindowBg]) > L(latte.colors[:Text])
+    @test L(dracula.colors[:WindowBg]) < L(dracula.colors[:Text])
+
+    # Regression: exact values cross-checked against ktsu's C# engine
+    # (ktsu.ThemeProvider, MakeCompletePalette) — match to ~1e-7, well under 1/255.
+    approxrgba(c, r, g, b) = isapprox(red(c), r; atol = 5e-4) &&
+                             isapprox(green(c), g; atol = 5e-4) &&
+                             isapprox(blue(c), b; atol = 5e-4)
+    @test approxrgba(latte.colors[:WindowBg], 0.86274457, 0.87843144, 0.9098034)
+    @test approxrgba(latte.colors[:Text],     0.24897297, 0.2593263,  0.35032633)
+    @test approxrgba(latte.colors[:Button],   0.44397306, 0.66916883, 0.99953973)
+    @test approxrgba(dracula.colors[:WindowBg], 0.15686299, 0.16470574, 0.2117647)
+    @test approxrgba(dracula.colors[:Text],     0.9725482,  0.9725493,  0.9490193)
+    @test approxrgba(dracula.colors[:Button],   0.7154975,  0.5546663,  0.94537854)
+end
