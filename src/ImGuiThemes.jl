@@ -2,6 +2,7 @@ module ImGuiThemes
 
 using CImGui
 using Colors
+using Accessors
 import TOML
 
 export THEMES, apply_theme!, theme_picker
@@ -141,7 +142,16 @@ apply_theme!(name::AbstractString, style = CImGui.GetStyle()) = apply!(theme(nam
 # Live picker
 # ---------------------------------------------------------------------------
 
-const _picker_state = Ref{Union{Nothing,String}}(nothing)
+"""
+Mutable state for [`theme_picker`](@ref): the selected theme name, an editable working copy of
+its colors (tweaked live), and whether the export text box is shown.
+"""
+mutable struct PickerState
+    selected::Union{Nothing,String}
+    colors::Dict{Symbol,RGBA{Float32}}   # editable working copy of the selected theme's colors
+    show_export::Bool
+end
+const _picker_state = PickerState(nothing, Dict{Symbol,RGBA{Float32}}(), false)
 
 """
     theme_picker(; window = true, title = "ImGui Themes", state = _picker_state)
@@ -152,18 +162,19 @@ dark and light — that each wrap to the window width. Selecting one applies it 
 app shows a standalone theme browser; with `window = false` it draws inline. Must be called
 inside an active imgui frame. Returns the currently-selected theme name (or `nothing`).
 """
-function theme_picker(; window::Bool = true, title::AbstractString = "ImGui Themes", state::Ref = _picker_state)
+function theme_picker(; window::Bool = true, title::AbstractString = "ImGui Themes", state::PickerState = _picker_state)
     opened = window ? CImGui.Begin(title) : true
     if opened
         _theme_group("Dark", :dark, state)
         _theme_group("Light", :light, state)
+        isnothing(state.selected) || _color_editors(state)
     end
     window && CImGui.End()
-    state[]
+    state.selected
 end
 
 # One bordered, auto-height child per mode, holding that mode's wrapping radio buttons.
-function _theme_group(title, m::Symbol, state::Ref)
+function _theme_group(title, m::Symbol, state::PickerState)
     flags = CImGui.ImGuiChildFlags_Borders | CImGui.ImGuiChildFlags_AutoResizeY
     if CImGui.BeginChild(title, CImGui.ImVec2(0, 0), flags)
         CImGui.SeparatorText(title)
@@ -173,7 +184,7 @@ function _theme_group(title, m::Symbol, state::Ref)
 end
 
 # Radio buttons that wrap to the current content width (imgui's buttons-wrap pattern).
-function _theme_radios(ts, state::Ref)
+function _theme_radios(ts, state::PickerState)
     style = CImGui.GetStyle()
     spacing = unsafe_load(style.ItemSpacing).x
     inner = unsafe_load(style.ItemInnerSpacing).x
@@ -181,13 +192,62 @@ function _theme_radios(ts, state::Ref)
     right_x = CImGui.GetCursorScreenPos().x + CImGui.GetContentRegionAvail().x
     radio_width(name) = frame_h + inner + CImGui.CalcTextSize(name).x
     for (i, t) in enumerate(ts)
-        if CImGui.RadioButton(t.name, state[] == t.name)
-            state[] = t.name
-            apply_theme!(t.name)
+        if CImGui.RadioButton(t.name, state.selected == t.name)
+            state.selected = t.name
+            state.colors = copy(t.colors)   # fresh editable copy (RGBA is immutable)
+            apply!(t)
         end
         if i < length(ts)  # keep the next button on this line only if it fits
             next_x = CImGui.GetItemRectMax().x + spacing + radio_width(ts[i + 1].name)
             next_x < right_x && CImGui.SameLine()
+        end
+    end
+end
+
+# Canonical imgui color order (by ImGuiCol_ index) — shared by the editor list and export.
+_color_order(colors) = sort!(collect(keys(colors)); by = k -> getfield(CImGui, Symbol("ImGuiCol_", get(COLOR_RENAME, k, k))))
+
+# Apply the selected theme with the working colors swapped in — through apply! so renames,
+# geometry and NEW_COLOR_FROM derivations stay coherent with the tweaked palette.
+function _apply_working(state::PickerState)
+    base = theme(state.selected)
+    apply!(@set base.colors = state.colors)
+end
+
+"""
+    export_string(colors)
+
+Minimal, pasteable `Dict(:Key => colorant"#RRGGBBAA", …)` representation of a color dict, in
+canonical imgui order. 8-digit hex always carries alpha and round-trips via `colorant`/`parse`.
+"""
+function export_string(colors)
+    ks = _color_order(colors)
+    w = maximum(length ∘ string, ks)
+    body = join(("  :$(rpad(string(k), w)) => colorant\"#$(hex(colors[k]))\"," for k in ks), "\n")
+    "Dict(\n$body\n)"
+end
+
+# Editable swatch per color plus Reset/Export, drawn below the theme groups.
+function _color_editors(state::PickerState)
+    CImGui.SeparatorText("Colors")
+    if CImGui.Button("Reset")
+        state.colors = copy(theme(state.selected).colors)
+        _apply_working(state)
+    end
+    CImGui.SameLine()
+    CImGui.Button("Export") && (state.show_export = !state.show_export)
+    if state.show_export
+        buf = push!(Vector{UInt8}(export_string(state.colors)), 0x00)   # NUL-terminated, rebuilt each frame
+        CImGui.InputTextMultiline("##export", buf, length(buf), CImGui.ImVec2(-1, 200), CImGui.ImGuiInputTextFlags_ReadOnly)
+    end
+    # NoInputs → just a labeled color swatch; the R/G/B/A inputs + alpha bar open in the click popup.
+    flags = CImGui.ImGuiColorEditFlags_NoInputs | CImGui.ImGuiColorEditFlags_AlphaBar
+    for key in _color_order(state.colors)
+        c = state.colors[key]
+        col = Cfloat[red(c), green(c), blue(c), alpha(c)]
+        if CImGui.ColorEdit4(string(key), col, flags)
+            state.colors[key] = RGBA{Float32}(col...)
+            _apply_working(state)
         end
     end
 end

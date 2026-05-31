@@ -57,6 +57,37 @@ end
     end
 end
 
+@testitem "export_string + live edit" begin
+    using CImGui, Colors
+
+    # export_string: minimal colorant-hex dict, canonical order, round-trips
+    d = Dict{Symbol,RGBA{Float32}}(
+        :WindowBg => parse(RGBA{Float32}, "#000000D9"),
+        :Text     => parse(RGBA{Float32}, "#E5E5E5FF"),
+    )
+    s = ImGuiThemes.export_string(d)
+    @test startswith(s, "Dict(\n")
+    @test occursin("colorant\"#E5E5E5FF\"", s)
+    @test occursin("colorant\"#000000D9\"", s)
+    @test findfirst(":Text", s) < findfirst(":WindowBg", s)   # canonical imgui order, not dict order
+    for (_, c) in d
+        @test parse(RGBA{Float32}, "#" * Colors.hex(c)) == c   # every emitted hex round-trips
+    end
+
+    # _apply_working pushes an edited working color to the live style
+    ctx = CImGui.CreateContext()
+    try
+        st = ImGuiThemes.PickerState("Cherry", copy(ImGuiThemes.theme("Cherry").colors), false)
+        st.colors[:WindowBg] = parse(RGBA{Float32}, "#112233FF")
+        ImGuiThemes._apply_working(st)
+        wb = CImGui.c_get(CImGui.GetStyle().Colors, CImGui.ImGuiCol_WindowBg)
+        c = st.colors[:WindowBg]
+        @test (wb.x, wb.y, wb.z, wb.w) == (red(c), green(c), blue(c), alpha(c))
+    finally
+        CImGui.DestroyContext(ctx)
+    end
+end
+
 @testitem "apply all themes headless" begin
     using CImGui, Colors
     ctx = CImGui.CreateContext()
