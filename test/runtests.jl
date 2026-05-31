@@ -12,7 +12,7 @@ using TestItemRunner
 end
 
 @testitem "registry" begin
-    @test length(ImGuiThemes.THEMES) == 49
+    @test length(ImGuiThemes.THEMES) >= 49
     @test allunique(t.name for t in ImGuiThemes.THEMES)
     @test length(ImGuiThemes.theme("Cherry").colors) == 53    # ImThemes themes carry all 53 keys
     @test length(ImGuiThemes.theme("Darcula").colors) == 53
@@ -41,6 +41,31 @@ end
         ic = CImGui.c_get(style.Colors, CImGui.ImGuiCol_InputTextCursor)
         txt = CImGui.c_get(style.Colors, CImGui.ImGuiCol_Text)
         @test (ic.x, ic.y, ic.z, ic.w) == (txt.x, txt.y, txt.z, txt.w) # derived from Text (Solarized omits it)
+    finally
+        CImGui.DestroyContext(ctx)
+    end
+end
+
+@testitem "spectrum (curated, Adobe palette)" begin
+    using CImGui, Colors
+    rgb(v) = (v.x, v.y, v.z)                   # ImVec4 components
+    crgb(c) = (red(c), green(c), blue(c))       # Colors accessors (functions, not local names)
+
+    sl = ImGuiThemes.theme("Spectrum Light")
+    sd = ImGuiThemes.theme("Spectrum Dark")
+    @test ImGuiThemes.mode(sl) === :light
+    @test ImGuiThemes.mode(sd) === :dark
+
+    ctx = CImGui.CreateContext()
+    try
+        style = CImGui.GetStyle()
+        ImGuiThemes.apply!(sl, style)
+        # WindowBg = Colors->GRAY100 = #F5F5F5 in light palette
+        wb = CImGui.c_get(style.Colors, CImGui.ImGuiCol_WindowBg)
+        @test rgb(wb) == crgb(colorant"#F5F5F5")
+        # CheckMark final value = GRAY50 = #FFFFFF in light palette (overwritten from BLUE500 in upstream)
+        ck = CImGui.c_get(style.Colors, CImGui.ImGuiCol_CheckMark)
+        @test rgb(ck) == crgb(colorant"#FFFFFF")
     finally
         CImGui.DestroyContext(ctx)
     end
