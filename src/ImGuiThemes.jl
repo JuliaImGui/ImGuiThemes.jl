@@ -125,6 +125,37 @@ end
 
 const _STYLE_FIELDS = Set(fieldnames(CImGui.lib.ImGuiStyle))
 
+# ---------------------------------------------------------------------------
+# Geometry defaults — used by the picker to reset a style's geometry to imgui's
+# built-ins before applying a theme, so the result never depends on what came before.
+# ---------------------------------------------------------------------------
+
+"Every imgui `ImGuiStyle` geometry field that some theme sets (camelCase → field name, valid fields only)."
+const _GEOMETRY_FIELDS = sort!(unique!(
+    [Symbol(uppercasefirst(string(k))) for t in THEMES for k in keys(t.style)
+     if Symbol(uppercasefirst(string(k))) in _STYLE_FIELDS]))
+
+"imgui's canonical default for each `_GEOMETRY_FIELDS` field; filled once by [`_ensure_defaults!`](@ref)."
+const _DEFAULT_GEOMETRY = Dict{Symbol,Any}()
+
+# Fill _DEFAULT_GEOMETRY once, from a freshly default-constructed ImGuiStyle (carries imgui's
+# canonical geometry defaults, independent of the live style). Idempotent.
+function _ensure_defaults!()
+    isempty(_DEFAULT_GEOMETRY) || return
+    s = CImGui.lib.ImGuiStyle()
+    try
+        for F in _GEOMETRY_FIELDS
+            _DEFAULT_GEOMETRY[F] = unsafe_load(getproperty(s, F))
+        end
+    finally
+        CImGui.lib.ImGuiStyle_destroy(s)
+    end
+    return
+end
+
+"Reset every geometry field to its captured imgui default (call [`_ensure_defaults!`](@ref) first)."
+_reset_geometry!(style) = foreach(F -> setproperty!(style, F, _DEFAULT_GEOMETRY[F]), _GEOMETRY_FIELDS)
+
 _styleval(v::Real)           = v                              # stored into a Cfloat field (converted at the boundary)
 _styleval(v::AbstractVector) = CImGui.ImVec2(v[1], v[2])
 _styleval(v::AbstractString) = getfield(CImGui, Symbol("ImGuiDir_", v))

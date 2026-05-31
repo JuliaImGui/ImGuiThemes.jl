@@ -342,3 +342,33 @@ end
         CImGui.DestroyContext(ctx)
     end
 end
+
+@testitem "geometry defaults + reset" begin
+    using CImGui
+    GF = ImGuiThemes._GEOMETRY_FIELDS
+    @test length(GF) == 29
+    @test :WindowRounding in GF
+    @test :FramePadding in GF
+    @test :SelectableTextAlign in GF
+    @test :WindowMenuButtonPosition in GF
+    @test !(:TabMinWidthForCloseButton in GF)        # legacy key: no ImGuiStyle field
+
+    ctx = CImGui.CreateContext()
+    try
+        style = CImGui.GetStyle()
+        # push a float, an ImVec2 and an ImGuiDir field away from their defaults
+        setproperty!(style, :WindowRounding, 99.0f0)
+        setproperty!(style, :FramePadding, CImGui.ImVec2(50, 60))
+        setproperty!(style, :WindowMenuButtonPosition, getfield(CImGui, :ImGuiDir_Right))
+
+        ImGuiThemes._ensure_defaults!()
+        ImGuiThemes._reset_geometry!(style)
+
+        @test unsafe_load(style.WindowRounding) == 0.0f0
+        fp = unsafe_load(style.FramePadding)
+        @test (fp.x, fp.y) == (4.0f0, 3.0f0)
+        @test unsafe_load(style.WindowMenuButtonPosition) == getfield(CImGui, :ImGuiDir_Left)
+    finally
+        CImGui.DestroyContext(ctx)
+    end
+end
