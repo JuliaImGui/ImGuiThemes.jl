@@ -1,9 +1,8 @@
 # ImGuiThemes.jl
 
 Ready-to-apply [Dear ImGui](https://github.com/ocornut/imgui) themes for
-[CImGui.jl](https://github.com/JuliaImGui/CImGui.jl): the ~47 dark and light themes from the
-[ImThemes](https://github.com/Patitotective/ImThemes) community database, plus curated palette
-themes (e.g. Solarized) — colors **and** geometry.
+[CImGui.jl](https://github.com/JuliaImGui/CImGui.jl): ~93 dark and light themes from
+multiple sources — colors **and** geometry.
 
 ## Usage
 
@@ -49,18 +48,32 @@ julia --project=examples -e 'import Pkg; Pkg.develop(path="."); Pkg.instantiate(
 julia --project=examples examples/theme_picker_demo.jl
 ```
 
+## Theme sources
+
+The catalogue (~93 themes, ≈22 light) is assembled from three sources:
+
+**ImThemes** (47 themes) — the community database from
+[Patitotective/ImThemes](https://github.com/Patitotective/ImThemes) (MIT, © 2022 Patitotective),
+vendored in `data/imthemes.toml`. Each theme keeps its original `author`.
+
+**Curated hand-authored themes** (8 themes, in `src/themes/`) — imgui-native Julia files, each
+transcribed or ported from a known upstream source:
+- **Solarized** Light & Dark — palette by Ethan Schoonover, imgui port from FringyUI
+- **Spectrum** Light & Dark — Adobe Design System palette
+- **Light Rounded** & **White is White** — Pascal Thomet / [HelloImGui](https://github.com/pthom/hello_imgui) (MIT)
+- **Doug Binks Light** — Doug Binks / Pacôme Danhiez
+- **Paper and Ink** — TheAncientOwl ([imgui issue #707](https://github.com/ocornut/imgui/issues/707#issuecomment-4107169777))
+
+**ktsu themes** (38 themes) — Catppuccin, Gruvbox, Everforest, Tokyo Night, Nord, Dracula, and
+more, generated at load time by a Julia port of
+[ktsu-dev/ThemeProvider](https://github.com/ktsu-dev/ThemeProvider)'s palette→imgui engine
+(`src/ktsu/engine.jl`). Seed palettes are vendored in `data/ktsu_themes.toml`
+(MIT, © ktsu-dev — see [`data/ktsu-LICENSE`](data/ktsu-LICENSE)).
+
 ## How it works
 
-Themes come from a vendored copy of ImThemes' `themes.toml`, parsed at load into `THEMES`.
-Colors are [Colors.jl](https://github.com/JuliaGraphics/Colors.jl) colorants. `apply!` resets
-to the matching dark/light base, applies the theme's geometry and colors (renaming the few
-color names imgui has changed since), then derives the newer imgui colors ImThemes predates
-from the theme's own palette — using imgui's own derivation rules. Targets current imgui
-(CImGui 7 / imgui 1.92). Curated themes (Solarized, …) are hand-built `Theme` values, one Julia
-file each under [`src/themes/`](src/themes), appended to the same `THEMES`.
-
-## Attribution
-
-Themes are from [Patitotective/ImThemes](https://github.com/Patitotective/ImThemes)
-(MIT, © 2022 Patitotective) — see [`data/imthemes-LICENSE`](data/imthemes-LICENSE). Each
-theme keeps its original `author`. Thanks to all the theme authors and to ImThemes.
+`apply!` resets the style to the matching dark/light base, applies the theme's geometry and
+colors (renaming the few color names imgui has changed since), then derives the newer imgui
+colors ImThemes predates from the theme's own palette — using imgui's own derivation rules.
+Colors are [Colors.jl](https://github.com/JuliaGraphics/Colors.jl) colorants. Targets current
+imgui (CImGui 7 / imgui 1.92).
