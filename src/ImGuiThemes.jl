@@ -89,8 +89,27 @@ include("themes/light_rounded.jl")
 include("themes/white_is_white.jl")
 include("themes/dougbinks_light.jl")
 
-"All themes — curated palette themes first, then the vendored ImThemes database."
-const THEMES = [_CURATED; [_parse_theme(d) for d in TOML.parsefile(_DATA)["themes"]]]
+# ---------------------------------------------------------------------------
+# ktsu ThemeProvider themes — generated from seed palettes by the ported engine
+# (src/ktsu/engine.jl). Defs vendored in data/ktsu_themes.toml (MIT, ktsu-dev).
+# ---------------------------------------------------------------------------
+
+include("ktsu/engine.jl")
+
+const _KTSU_DATA = joinpath(@__DIR__, "..", "data", "ktsu_themes.toml")
+include_dependency(_KTSU_DATA)
+
+"Build one ktsu theme from a parsed `[[themes]]` toml entry: role-name strings → `SemanticMeaning`, hex strings → colorants."
+function _ktsu_from_toml(d)
+    roles = Dict(getfield(@__MODULE__, Symbol(role)) => [parse(RGBA{Float32}, h) for h in hexes]
+                 for (role, hexes) in d["roles"])
+    _ktsu_theme(; name = d["name"], author = get(d, "author", "ktsu-dev"), isdark = d["isDark"], roles)
+end
+
+const _KTSU = [_ktsu_from_toml(d) for d in TOML.parsefile(_KTSU_DATA)["themes"]]
+
+"All themes — curated palette themes, then ktsu engine themes, then the vendored ImThemes database."
+const THEMES = [_CURATED; _KTSU; [_parse_theme(d) for d in TOML.parsefile(_DATA)["themes"]]]
 
 "`theme(name)` → the [`Theme`](@ref) with that name (`KeyError` if absent)."
 function theme(name::AbstractString)
