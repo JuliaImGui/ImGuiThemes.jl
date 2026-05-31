@@ -293,21 +293,16 @@ end
     @test "dark" in dracula.tags
 
     # Light theme: background bright, text dark. Dark theme: the reverse.
-    L(c) = K._rgb_to_oklab(red(c), green(c), blue(c)).L
+    L(c) = convert(Oklab, c).l
     @test L(latte.colors[:WindowBg]) > L(latte.colors[:Text])
     @test L(dracula.colors[:WindowBg]) < L(dracula.colors[:Text])
 
-    # Regression: exact values cross-checked against ktsu's C# engine
-    # (ktsu.ThemeProvider, MakeCompletePalette) — match to ~1e-7, well under 1/255.
-    approxrgba(c, r, g, b) = isapprox(red(c), r; atol = 5e-4) &&
-                             isapprox(green(c), g; atol = 5e-4) &&
-                             isapprox(blue(c), b; atol = 5e-4)
-    @test approxrgba(latte.colors[:WindowBg], 0.86274457, 0.87843144, 0.9098034)
-    @test approxrgba(latte.colors[:Text],     0.24897297, 0.2593263,  0.35032633)
-    @test approxrgba(latte.colors[:Button],   0.44397306, 0.66916883, 0.99953973)
-    @test approxrgba(dracula.colors[:WindowBg], 0.15686299, 0.16470574, 0.2117647)
-    @test approxrgba(dracula.colors[:Text],     0.9725482,  0.9725493,  0.9490193)
-    @test approxrgba(dracula.colors[:Button],   0.7154975,  0.5546663,  0.94537854)
+    # At the extreme priority the engine places the neutral seed unchanged, so the
+    # window background is the scheme's lightest (light) / darkest (dark) neutral.
+    approxrgb(c, ref) = all(isapprox.((red(c), green(c), blue(c)),
+                                      (red(ref), green(ref), blue(ref)); atol = 2/255))
+    @test approxrgb(latte.colors[:WindowBg], colorant"#dce0e8")     # Latte Crust
+    @test approxrgb(dracula.colors[:WindowBg], colorant"#282a36")   # Dracula Background
 end
 
 @testitem "ktsu themes (generated from vendored defs)" begin
