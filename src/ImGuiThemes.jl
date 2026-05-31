@@ -88,6 +88,7 @@ include("themes/spectrum.jl")
 include("themes/light_rounded.jl")
 include("themes/white_is_white.jl")
 include("themes/dougbinks_light.jl")
+include("themes/paper_and_ink.jl")
 
 # ---------------------------------------------------------------------------
 # ktsu ThemeProvider themes — generated from seed palettes by the ported engine

@@ -12,7 +12,7 @@ using TestItemRunner
 end
 
 @testitem "registry" begin
-    @test length(ImGuiThemes.THEMES) >= 49
+    @test length(ImGuiThemes.THEMES) >= 50
     @test allunique(t.name for t in ImGuiThemes.THEMES)
     @test length(ImGuiThemes.theme("Cherry").colors) == 53    # ImThemes themes carry all 53 keys
     @test length(ImGuiThemes.theme("Darcula").colors) == 53
@@ -178,6 +178,32 @@ end
         @test wb.y ≈ 0.94f0  atol=1e-6
         @test wb.z ≈ 0.94f0  atol=1e-6
         @test wb.w ≈ 0.94f0  atol=1e-6
+    finally
+        CImGui.DestroyContext(ctx)
+    end
+end
+
+@testitem "707 (light)" begin
+    using CImGui, Colors
+
+    pi_theme = ImGuiThemes.theme("Paper and Ink")
+    @test ImGuiThemes.mode(pi_theme) === :light
+
+    ctx = CImGui.CreateContext()
+    try
+        style = CImGui.GetStyle()
+        ImGuiThemes.apply!(pi_theme, style)
+        for i in 0:(Int(CImGui.ImGuiCol_COUNT) - 1)
+            c = CImGui.c_get(style.Colors, i)
+            for comp in (c.x, c.y, c.z, c.w)
+                @test isfinite(comp) && 0 ≤ comp ≤ 1
+            end
+        end
+        # WindowBg = warm paper (0.96, 0.96, 0.94)
+        wb = CImGui.c_get(style.Colors, CImGui.ImGuiCol_WindowBg)
+        @test wb.x ≈ 0.96f0  atol=1e-6
+        @test wb.y ≈ 0.96f0  atol=1e-6
+        @test wb.z ≈ 0.94f0  atol=1e-6
     finally
         CImGui.DestroyContext(ctx)
     end
