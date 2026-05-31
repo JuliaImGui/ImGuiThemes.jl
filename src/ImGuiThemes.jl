@@ -26,6 +26,10 @@ struct Theme
     colors::Dict{Symbol,RGBA{Float32}}   # ImThemes color key => colorant
 end
 
+"Keyword constructor for hand-written (curated) themes; colors-only by default."
+Theme(; name, author = "", description = "", tags, date = "", style = Dict{Symbol,Any}(), colors) =
+    Theme(name, author, description, tags, date, style, colors)
+
 "`:light` if the theme is tagged light, else `:dark` — picks the base preset."
 mode(t::Theme) = "light" in t.tags ? :light : :dark
 
@@ -69,8 +73,19 @@ function _parse_theme(d)
           string.(get(d, "tags", String[])), string(get(d, "date", "")), style, colors)
 end
 
-"All themes from the vendored ImThemes database, in file order."
-const THEMES = [_parse_theme(d) for d in TOML.parsefile(_DATA)["themes"]]
+# ---------------------------------------------------------------------------
+# Curated palette themes — one self-contained file per theme under src/themes/
+# ---------------------------------------------------------------------------
+
+const _CURATED = Theme[]   # each src/themes/*.jl push!es its Theme(s) here
+
+"`withα(c, a)` → color `c` with its alpha replaced by `a` (for hover/active state colors)."
+withα(c, a) = RGBA{Float32}(red(c), green(c), blue(c), Float32(a))
+
+include("themes/solarized.jl")
+
+"All themes — curated palette themes first, then the vendored ImThemes database."
+const THEMES = [_CURATED; [_parse_theme(d) for d in TOML.parsefile(_DATA)["themes"]]]
 
 "`theme(name)` → the [`Theme`](@ref) with that name (`KeyError` if absent)."
 function theme(name::AbstractString)
@@ -97,8 +112,8 @@ _setcolor!(style, name::Symbol, c) =
     apply!(theme, style = CImGui.GetStyle())
 
 Apply `theme` to an imgui `style` (a `Ptr{ImGuiStyle}`): reset to the matching dark/light
-base, set the theme's geometry and colors (renaming the few old color names), then derive the
-newer colors ImThemes lacks from the theme's palette. Returns `style`.
+base, set the theme's geometry and colors (renaming the few old color names), then derive any
+newer colors the theme didn't set itself from its palette. Returns `style`.
 """
 function apply!(t::Theme, style = CImGui.GetStyle())
     mode(t) === :light ? CImGui.StyleColorsLight(style) : CImGui.StyleColorsDark(style)
@@ -110,6 +125,7 @@ function apply!(t::Theme, style = CImGui.GetStyle())
         _setcolor!(style, get(COLOR_RENAME, key, key), c)
     end
     for (new, (src, αf)) in NEW_COLOR_FROM
+        haskey(t.colors, new) && continue  # theme set this newer color explicitly → keep it
         c = t.colors[src]
         _setcolor!(style, new, RGBA{Float32}(red(c), green(c), blue(c), alpha(c) * αf))
     end

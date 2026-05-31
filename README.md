@@ -1,9 +1,9 @@
 # ImGuiThemes.jl
 
 Ready-to-apply [Dear ImGui](https://github.com/ocornut/imgui) themes for
-[CImGui.jl](https://github.com/JuliaImGui/CImGui.jl), sourced from the
-[ImThemes](https://github.com/Patitotective/ImThemes) community theme database (~47 dark and
-light themes, colors **and** geometry).
+[CImGui.jl](https://github.com/JuliaImGui/CImGui.jl): the ~47 dark and light themes from the
+[ImThemes](https://github.com/Patitotective/ImThemes) community database, plus curated palette
+themes (e.g. Solarized) — colors **and** geometry.
 
 ## Usage
 
@@ -56,7 +56,8 @@ Colors are [Colors.jl](https://github.com/JuliaGraphics/Colors.jl) colorants. `a
 to the matching dark/light base, applies the theme's geometry and colors (renaming the few
 color names imgui has changed since), then derives the newer imgui colors ImThemes predates
 from the theme's own palette — using imgui's own derivation rules. Targets current imgui
-(CImGui 7 / imgui 1.92).
+(CImGui 7 / imgui 1.92). Curated themes (Solarized, …) are hand-built `Theme` values, one Julia
+file each under [`src/themes/`](src/themes), appended to the same `THEMES`.
 
 ## Attribution
 

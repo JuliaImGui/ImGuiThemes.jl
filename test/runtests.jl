@@ -12,11 +12,38 @@ using TestItemRunner
 end
 
 @testitem "registry" begin
-    @test length(ImGuiThemes.THEMES) == 47
+    @test length(ImGuiThemes.THEMES) == 49
     @test allunique(t.name for t in ImGuiThemes.THEMES)
-    @test all(length(t.colors) == 53 for t in ImGuiThemes.THEMES)
+    @test length(ImGuiThemes.theme("Cherry").colors) == 53    # ImThemes themes carry all 53 keys
+    @test length(ImGuiThemes.theme("Darcula").colors) == 53
     @test ImGuiThemes.theme("Classic").author == "ocornut"
     @test_throws KeyError ImGuiThemes.theme("nope")
+end
+
+@testitem "solarized (curated, palette-built)" begin
+    using CImGui, Colors
+    rgb(v) = (v.x, v.y, v.z)                   # ImVec4 components
+    crgb(c) = (red(c), green(c), blue(c))       # Colors accessors (functions, not local names)
+
+    sd = ImGuiThemes.theme("Solarized Dark")
+    @test ImGuiThemes.mode(sd) === :dark
+    @test ImGuiThemes.mode(ImGuiThemes.theme("Solarized Light")) === :light
+    @test length(sd.colors) == 58
+
+    ctx = CImGui.CreateContext()
+    try
+        style = CImGui.GetStyle()
+        ImGuiThemes.apply!(sd, style)
+        wb = CImGui.c_get(style.Colors, CImGui.ImGuiCol_WindowBg)
+        @test rgb(wb) == crgb(parse(RGBA{Float32}, "#002b36"))         # base03
+        tl = CImGui.c_get(style.Colors, CImGui.ImGuiCol_TextLink)
+        @test rgb(tl) == crgb(parse(RGBA{Float32}, "#268bd2"))         # explicit blue, NOT derived (apply! guard)
+        ic = CImGui.c_get(style.Colors, CImGui.ImGuiCol_InputTextCursor)
+        txt = CImGui.c_get(style.Colors, CImGui.ImGuiCol_Text)
+        @test (ic.x, ic.y, ic.z, ic.w) == (txt.x, txt.y, txt.z, txt.w) # derived from Text (Solarized omits it)
+    finally
+        CImGui.DestroyContext(ctx)
+    end
 end
 
 @testitem "lookup tables resolve to real ImGuiCol_" begin
