@@ -3,10 +3,11 @@
 # colors-only theme over the 16-colour palette. Light mode reverses the base ramp.
 # NB: `red`/`green`/`blue`/`alpha` are exported Colors accessors — never use them as local names.
 
-const _SOL_BASE = parse.(RGBA{Float32},          # base03 base02 base01 base00 base0 base1 base2 base3
-    ("#002b36", "#073642", "#586e75", "#657b83", "#839496", "#93a1a1", "#eee8d5", "#fdf6e3"))
-const _SOL_BLUE   = parse(RGBA{Float32}, "#268bd2")
-const _SOL_ORANGE = parse(RGBA{Float32}, "#cb4b16")
+const _SOL_BASE = (          # base03 base02 base01 base00 base0 base1 base2 base3
+    colorant"#002b36", colorant"#073642", colorant"#586e75", colorant"#657b83",
+    colorant"#839496", colorant"#93a1a1", colorant"#eee8d5", colorant"#fdf6e3")
+const _SOL_BLUE   = colorant"#268bd2"
+const _SOL_ORANGE = colorant"#cb4b16"
 
 function _solarized(dark::Bool)
     base = dark ? _SOL_BASE : reverse(_SOL_BASE)  # base[1] = window bg ... base[8] = text
