@@ -156,6 +156,33 @@ end
     end
 end
 
+@testitem "dougbinks (light)" begin
+    using CImGui, Colors
+
+    db = ImGuiThemes.theme("Doug Binks Light")
+    @test ImGuiThemes.mode(db) === :light
+
+    ctx = CImGui.CreateContext()
+    try
+        style = CImGui.GetStyle()
+        ImGuiThemes.apply!(db, style)
+        for i in 0:(Int(CImGui.ImGuiCol_COUNT) - 1)
+            c = CImGui.c_get(style.Colors, i)
+            for comp in (c.x, c.y, c.z, c.w)
+                @test isfinite(comp) && 0 ≤ comp ≤ 1
+            end
+        end
+        # WindowBg = (0.94, 0.94, 0.94, 0.94) verbatim from upstream
+        wb = CImGui.c_get(style.Colors, CImGui.ImGuiCol_WindowBg)
+        @test wb.x ≈ 0.94f0  atol=1e-6
+        @test wb.y ≈ 0.94f0  atol=1e-6
+        @test wb.z ≈ 0.94f0  atol=1e-6
+        @test wb.w ≈ 0.94f0  atol=1e-6
+    finally
+        CImGui.DestroyContext(ctx)
+    end
+end
+
 @testitem "apply all themes headless" begin
     using CImGui, Colors
     ctx = CImGui.CreateContext()
