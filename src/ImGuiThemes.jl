@@ -208,8 +208,12 @@ mutable struct PickerState
     selected::Union{Nothing,String}
     colors::Dict{Symbol,RGBA{Float32}}   # editable working copy of the selected theme's colors
     show_export::Bool
+    apply_geometry::Bool                 # picker: apply theme geometry (true) or colors only (false)
 end
-const _picker_state = PickerState(nothing, Dict{Symbol,RGBA{Float32}}(), false)
+# 3-arg form (existing callers / tests): geometry on by default.
+PickerState(selected, colors, show_export) = PickerState(selected, colors, show_export, true)
+
+const _picker_state = PickerState(nothing, Dict{Symbol,RGBA{Float32}}(), false, true)
 
 """
     theme_picker(; window = true, title = "ImGui Themes", state = _picker_state)
@@ -241,6 +245,12 @@ function _theme_group(title, m::Symbol, state::PickerState)
     CImGui.EndChild()
 end
 
+"True if `t` sets any imgui geometry field (so the picker marks it with ` *`)."
+_has_geometry(t::Theme) = !isempty(t.style)
+
+"Radio label for `t`: its name, suffixed with ` *` when it also sets geometry."
+_label(t::Theme) = _has_geometry(t) ? "$(t.name) *" : t.name
+
 # Radio buttons that wrap to the current content width (imgui's buttons-wrap pattern).
 function _theme_radios(ts, state::PickerState)
     style = CImGui.GetStyle()
@@ -264,6 +274,17 @@ end
 
 # Canonical imgui color order (by ImGuiCol_ index) — shared by the editor list and export.
 _color_order(colors) = sort!(collect(keys(colors)); by = k -> getfield(CImGui, Symbol("ImGuiCol_", get(COLOR_RENAME, k, k))))
+
+# The picker's apply path. With apply_geometry = true, first reset every geometry field to imgui
+# defaults (so the result never depends on the previously-applied theme), then apply geometry +
+# colors via apply!. With apply_geometry = false, geometry is left untouched (colors only).
+function _apply_picked!(state::PickerState, t::Theme, style = CImGui.GetStyle())
+    if state.apply_geometry
+        _ensure_defaults!()
+        _reset_geometry!(style)
+    end
+    apply!(t, style; geometry = state.apply_geometry)
+end
 
 # Apply the selected theme with the working colors swapped in — through apply! so renames,
 # geometry and NEW_COLOR_FROM derivations stay coherent with the tweaked palette.

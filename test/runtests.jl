@@ -394,3 +394,40 @@ end
         CImGui.DestroyContext(ctx)
     end
 end
+
+@testitem "picker indicator + apply semantics" begin
+    using CImGui, Colors
+    M = ImGuiThemes
+
+    # indicator: geometry themes marked, colors-only themes not
+    @test M._has_geometry(M.theme("Paper and Ink")) == true
+    @test M._has_geometry(M.theme("Nord")) == false             # ktsu, colors-only
+    @test M._has_geometry(M.theme("Solarized Dark")) == false
+    @test M._label(M.theme("Paper and Ink")) == "Paper and Ink *"
+    @test M._label(M.theme("Nord")) == "Nord"
+
+    # PickerState: new field + back-compat 3-arg ctor defaults geometry ON
+    st = M.PickerState("Paper and Ink", copy(M.theme("Paper and Ink").colors), false)
+    @test st.apply_geometry == true
+
+    ctx = CImGui.CreateContext()
+    try
+        style = CImGui.GetStyle()
+
+        # apply_geometry = true: geometry theme → colors-only theme resets geometry (no leak)
+        M._apply_picked!(st, M.theme("Paper and Ink"), style)
+        @test unsafe_load(style.WindowRounding) == 2.0f0
+        M._apply_picked!(st, M.theme("Nord"), style)
+        @test unsafe_load(style.WindowRounding) == 0.0f0        # reset to imgui default
+
+        # apply_geometry = false: geometry left untouched
+        st.apply_geometry = false
+        M._apply_picked!(st, M.theme("Paper and Ink"), style)   # geometry NOT applied
+        @test unsafe_load(style.WindowRounding) == 0.0f0        # still default
+        setproperty!(style, :WindowRounding, 5.0f0)
+        M._apply_picked!(st, M.theme("Nord"), style)
+        @test unsafe_load(style.WindowRounding) == 5.0f0        # untouched
+    finally
+        CImGui.DestroyContext(ctx)
+    end
+end
