@@ -227,6 +227,13 @@ inside an active imgui frame. Returns the currently-selected theme name (or `not
 function theme_picker(; window::Bool = true, title::AbstractString = "ImGui Themes", state::PickerState = _picker_state)
     opened = window ? CImGui.Begin(title) : true
     if opened
+        geom = Ref(state.apply_geometry)
+        if CImGui.Checkbox("Apply geometry", geom)
+            state.apply_geometry = geom[]
+            isnothing(state.selected) || _apply_working(state)
+        end
+        CImGui.SameLine()
+        CImGui.TextDisabled("(* = also sets geometry)")
         _theme_group("Dark", :dark, state)
         _theme_group("Light", :light, state)
         isnothing(state.selected) || _color_editors(state)
@@ -258,15 +265,15 @@ function _theme_radios(ts, state::PickerState)
     inner = unsafe_load(style.ItemInnerSpacing).x
     frame_h = CImGui.GetFrameHeight()
     right_x = CImGui.GetCursorScreenPos().x + CImGui.GetContentRegionAvail().x
-    radio_width(name) = frame_h + inner + CImGui.CalcTextSize(name).x
+    radio_width(label) = frame_h + inner + CImGui.CalcTextSize(label).x
     for (i, t) in enumerate(ts)
-        if CImGui.RadioButton(t.name, state.selected == t.name)
+        if CImGui.RadioButton(_label(t), state.selected == t.name)
             state.selected = t.name
             state.colors = copy(t.colors)   # fresh editable copy (RGBA is immutable)
-            apply!(t)
+            _apply_picked!(state, t)
         end
         if i < length(ts)  # keep the next button on this line only if it fits
-            next_x = CImGui.GetItemRectMax().x + spacing + radio_width(ts[i + 1].name)
+            next_x = CImGui.GetItemRectMax().x + spacing + radio_width(_label(ts[i + 1]))
             next_x < right_x && CImGui.SameLine()
         end
     end
@@ -286,11 +293,11 @@ function _apply_picked!(state::PickerState, t::Theme, style = CImGui.GetStyle())
     apply!(t, style; geometry = state.apply_geometry)
 end
 
-# Apply the selected theme with the working colors swapped in — through apply! so renames,
-# geometry and NEW_COLOR_FROM derivations stay coherent with the tweaked palette.
-function _apply_working(state::PickerState)
+# Apply the selected theme with the working colors swapped in — through the picker path so the
+# geometry reset / colors-only flag and the color renames + NEW_COLOR_FROM derivations all apply.
+function _apply_working(state::PickerState, style = CImGui.GetStyle())
     base = theme(state.selected)
-    apply!(@set base.colors = state.colors)
+    _apply_picked!(state, (@set base.colors = state.colors), style)
 end
 
 """
