@@ -165,17 +165,20 @@ _setcolor!(style, name::Symbol, c) =
                   CImGui.ImVec4(red(c), green(c), blue(c), alpha(c)))
 
 """
-    apply!(theme, style = CImGui.GetStyle())
+    apply!(theme, style = CImGui.GetStyle(); geometry = true)
 
 Apply `theme` to an imgui `style` (a `Ptr{ImGuiStyle}`): reset to the matching dark/light
 base, set the theme's geometry and colors (renaming the few old color names), then derive any
-newer colors the theme didn't set itself from its palette. Returns `style`.
+newer colors the theme didn't set itself from its palette. Returns `style`. With
+`geometry = false` the theme's geometry fields are left untouched and only colors are applied.
 """
-function apply!(t::Theme, style = CImGui.GetStyle())
+function apply!(t::Theme, style = CImGui.GetStyle(); geometry::Bool = true)
     mode(t) === :light ? CImGui.StyleColorsLight(style) : CImGui.StyleColorsDark(style)
-    for (k, v) in t.style
-        F = Symbol(uppercasefirst(string(k)))
-        F in _STYLE_FIELDS && setproperty!(style, F, _styleval(v))
+    if geometry
+        for (k, v) in t.style
+            F = Symbol(uppercasefirst(string(k)))
+            F in _STYLE_FIELDS && setproperty!(style, F, _styleval(v))
+        end
     end
     for (key, c) in t.colors
         _setcolor!(style, get(COLOR_RENAME, key, key), c)

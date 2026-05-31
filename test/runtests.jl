@@ -372,3 +372,25 @@ end
         CImGui.DestroyContext(ctx)
     end
 end
+
+@testitem "apply! geometry kwarg" begin
+    using CImGui
+    pin = ImGuiThemes.theme("Paper and Ink")    # sets windowRounding = 2; WindowBg ≈ (0.96,0.96,0.94)
+    ctx = CImGui.CreateContext()
+    try
+        style = CImGui.GetStyle()
+
+        # geometry = false → geometry untouched, colors still applied
+        setproperty!(style, :WindowRounding, 7.0f0)
+        ImGuiThemes.apply!(pin, style; geometry = false)
+        @test unsafe_load(style.WindowRounding) == 7.0f0                  # left as-is
+        wb = CImGui.c_get(style.Colors, CImGui.ImGuiCol_WindowBg)
+        @test wb.x ≈ 0.96f0 atol = 1e-6                                  # colors did apply
+
+        # default (geometry = true) → theme geometry applied
+        ImGuiThemes.apply!(pin, style)
+        @test unsafe_load(style.WindowRounding) == 2.0f0
+    finally
+        CImGui.DestroyContext(ctx)
+    end
+end
