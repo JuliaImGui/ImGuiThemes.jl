@@ -239,12 +239,8 @@ end
 
 @testitem "ktsu engine (palette→imgui port)" begin
     using Colors
-    import ImGuiThemes: Theme
 
-    # The ktsu engine lives in src/ktsu/engine.jl (included by ImGuiThemes.jl).
-    # Load it here into this testitem's module, which already has Colors + Theme in scope.
-    K = @__MODULE__
-    include(joinpath(pkgdir(ImGuiThemes), "src", "ktsu", "engine.jl"))
+    K = ImGuiThemes   # engine internals: _ktsu_theme, _KTSU_SLOTS, the SemanticMeaning enum (Neutral, …)
 
     # Stage-A table fully translated.
     @test length(K._KTSU_SLOTS) == 47

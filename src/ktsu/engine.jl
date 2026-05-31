@@ -96,10 +96,8 @@ const _KTSU_SLOTS = Dict{Symbol,Tuple{SemanticMeaning,Priority}}(
 # Stage B — place a role's seeds at the target Oklab lightness for each priority
 # ---------------------------------------------------------------------------
 
-_lerp(c1::Oklab, c2::Oklab, t) = Oklab((1 - t) * c1.l + t * c2.l, (1 - t) * c1.a + t * c2.a, (1 - t) * c1.b + t * c2.b)
-
-# a seed color shifted to a given Oklab lightness (keeping its hue/chroma), clamped to gamut
-_at_lightness(seed::Oklab{Float32}, target::Float32) = convert(RGB{Float32}, Oklab{Float32}(target, seed.a, seed.b))
+# a seed color shifted to a given Oklab lightness (keeping its hue/chroma); the RGB conversion clamps to gamut
+_at_lightness(seed::Oklab, target::Real) = convert(RGB{Float32}, @set seed.l = target)
 
 # the role's seed color(s) evaluated at `target` lightness (interpolate within range, extrapolate outside)
 function _color_at_lightness(seeds::Vector{Oklab{Float32}}, target::Float32)
@@ -108,7 +106,8 @@ function _color_at_lightness(seeds::Vector{Oklab{Float32}}, target::Float32)
     target ≥ last(s).l  && return _at_lightness(last(s), target)
     j = findfirst(i -> target ≤ s[i + 1].l, eachindex(s)[1:end-1])
     lo, hi = s[j], s[j + 1]
-    convert(RGB{Float32}, _lerp(lo, hi, (target - lo.l) / (hi.l - lo.l)))
+    t = (target - lo.l) / (hi.l - lo.l)
+    convert(RGB{Float32}, weighted_color_mean(1 - t, lo, hi))
 end
 
 # CalculateTargetLightnessForSemantic: neutrals span the seeds' full lightness
@@ -137,7 +136,7 @@ function _ktsu_make_palette(seeds_by_meaning, isdark::Bool)
     for (meaning, seeds) in seeds_by_meaning, priority in instances(Priority)
         isempty(seeds) && continue
         rgb = _color_at_lightness(seeds, _target_lightness(priority, meaning, gmin, gmax, isdark))
-        out[(meaning, priority)] = RGBA{Float32}(red(rgb), green(rgb), blue(rgb), 1f0)
+        out[(meaning, priority)] = RGBA{Float32}(rgb)
     end
     out
 end
@@ -150,7 +149,7 @@ gives the seed colors per role. Runs Stage B, then resolves each `_KTSU_SLOTS`
 entry's `(meaning, priority)` to a color. `tags = [isdark ? "dark" : "light"]`.
 """
 function _ktsu_theme(; name::AbstractString, author::AbstractString = "", isdark::Bool, roles)
-    seeds = Dict(m => Oklab{Float32}[convert(Oklab{Float32}, c) for c in cs] for (m, cs) in roles)
+    seeds = Dict(m => convert.(Oklab{Float32}, cs) for (m, cs) in roles)
     palette = _ktsu_make_palette(seeds, isdark)
     colors = Dict{Symbol,RGBA{Float32}}(slot => palette[key] for (slot, key) in _KTSU_SLOTS if haskey(palette, key))
     Theme(; name, author, tags = [isdark ? "dark" : "light"], colors)
