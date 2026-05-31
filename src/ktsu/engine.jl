@@ -174,14 +174,9 @@ _seed(rgb::NTuple{3,Float32}) = (o = _rgb_to_oklab(rgb...); _Seed(o, o.L))
 
 # CalculateGlobalLightnessRange: min/max Oklab L over ALL seed colors of ALL roles.
 function _global_lightness_range(seeds_by_meaning)::Tuple{Float32,Float32}
-    gmin = typemax(Float32)
-    gmax = typemin(Float32)
-    for (_, seeds) in seeds_by_meaning, sd in seeds
-        sd.lightness < gmin && (gmin = sd.lightness)
-        sd.lightness > gmax && (gmax = sd.lightness)
-    end
-    (gmin == typemax(Float32) || gmax == typemin(Float32)) && return (0f0, 1f0)
-    (gmin, gmax)
+    lightnesses = [sd.lightness for sd in Iterators.flatten(values(seeds_by_meaning))]
+    isempty(lightnesses) && return (0f0, 1f0)
+    extrema(lightnesses)
 end
 
 # CalculateTargetLightnessForSemantic
@@ -278,7 +273,7 @@ function _ktsu_make_palette(seeds_by_meaning, isdark::Bool)::Dict{Tuple{Semantic
         isempty(seeds) && continue
         for priority in _KTSU_PRIORITIES
             target = _target_lightness(priority, meaning, gmin, gmax, isdark)
-            r, g, b = _interpolate_to_target(collect(_Seed, seeds), target)
+            r, g, b = _interpolate_to_target(seeds, target)
             out[(meaning, priority)] = RGBA{Float32}(r, g, b, 1f0)
         end
     end
@@ -308,9 +303,6 @@ function _ktsu_theme(; name::AbstractString, author::AbstractString = "", isdark
                      roles)
     seeds_by_meaning = Dict(m => [_ktsu_seed(c) for c in cs] for (m, cs) in roles)
     palette = _ktsu_make_palette(seeds_by_meaning, isdark)
-    colors = Dict{Symbol,RGBA{Float32}}()
-    for (slot, key) in _KTSU_SLOTS
-        haskey(palette, key) && (colors[slot] = palette[key])
-    end
+    colors = Dict{Symbol,RGBA{Float32}}(slot => palette[key] for (slot, key) in _KTSU_SLOTS if haskey(palette, key))
     Theme(; name, author, tags = [isdark ? "dark" : "light"], colors)
 end

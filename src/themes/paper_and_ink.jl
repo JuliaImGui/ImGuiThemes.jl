@@ -1,8 +1,7 @@
 # Paper and Ink — TheAncientOwl (imgui issue #707 comment)
 # Source: https://github.com/ocornut/imgui/issues/707#issuecomment-4107169777
 # Warm-paper-white background (#F5F5F0 ≈ 0.96/0.96/0.94) with blueprint-blue accents.
-# All names are already modern imgui; auto-renames apply: TabActive→TabSelected,
-# TabUnfocused→TabDimmed, TabUnfocusedActive→TabDimmedSelected, NavHighlight→NavCursor.
+# All names are modern imgui (1.92): TabSelected, TabDimmed, TabDimmedSelected, NavCursor.
 # DockingPreview/DockingEmptyBg included (imgui 1.92 has them).
 
 push!(_CURATED, Theme(
@@ -68,14 +67,14 @@ push!(_CURATED, Theme(
         :TableRowBgAlt         => RGBA{Float32}(0.00f0, 0.00f0, 0.00f0, 0.03f0),
         :Tab                   => RGBA{Float32}(0.92f0, 0.92f0, 0.90f0, 1.00f0),
         :TabHovered            => RGBA{Float32}(1.00f0, 1.00f0, 1.00f0, 1.00f0),
-        :TabActive             => RGBA{Float32}(1.00f0, 1.00f0, 1.00f0, 1.00f0),   # → TabSelected
-        :TabUnfocused          => RGBA{Float32}(0.92f0, 0.92f0, 0.90f0, 1.00f0),   # → TabDimmed
-        :TabUnfocusedActive    => RGBA{Float32}(0.96f0, 0.96f0, 0.94f0, 1.00f0),   # → TabDimmedSelected
+        :TabSelected           => RGBA{Float32}(1.00f0, 1.00f0, 1.00f0, 1.00f0),
+        :TabDimmed             => RGBA{Float32}(0.92f0, 0.92f0, 0.90f0, 1.00f0),
+        :TabDimmedSelected     => RGBA{Float32}(0.96f0, 0.96f0, 0.94f0, 1.00f0),
         :PlotLines             => RGBA{Float32}(0.17f0, 0.34f0, 0.59f0, 1.00f0),
         :PlotHistogram         => RGBA{Float32}(0.17f0, 0.34f0, 0.59f0, 1.00f0),
         :TextSelectedBg        => RGBA{Float32}(0.17f0, 0.34f0, 0.59f0, 0.25f0),
         :DragDropTarget        => RGBA{Float32}(0.17f0, 0.34f0, 0.59f0, 0.90f0),
-        :NavHighlight          => RGBA{Float32}(0.17f0, 0.34f0, 0.59f0, 1.00f0),   # → NavCursor
+        :NavCursor             => RGBA{Float32}(0.17f0, 0.34f0, 0.59f0, 1.00f0),
         :DockingPreview        => RGBA{Float32}(0.17f0, 0.34f0, 0.59f0, 0.40f0),
         :DockingEmptyBg        => RGBA{Float32}(0.96f0, 0.96f0, 0.94f0, 1.00f0),
     ),

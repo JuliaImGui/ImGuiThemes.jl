@@ -2,7 +2,7 @@
 # ThemesImpl::LightRounded()
 # Method: ground-truth values from imgui-bundle 1.92.801 (theme_to_style),
 # all colors transcribed exactly; colors absent from CImGui.jl (CheckboxSelectedBg,
-# DragDropTargetBg, UnsavedMarker) are omitted.
+# UnsavedMarker) are omitted.
 # NB: `red`/`green`/`blue`/`alpha` are exported Colors accessors — never use them as local names.
 
 push!(_CURATED, Theme(

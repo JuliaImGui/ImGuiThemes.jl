@@ -4,7 +4,7 @@
 # Method B: ground-truth values from imgui-bundle 1.92.801 (theme_to_style),
 # all colors transcribed exactly; WindowBg/ChildBg/PopupBg clamped from >1 to 1.0 (the
 # ValueMultiplierBg(7.0) overshoots; rendering clamps to white, which is the intent).
-# Colors absent from CImGui.jl (CheckboxSelectedBg, DragDropTargetBg, UnsavedMarker) omitted.
+# Colors absent from CImGui.jl (CheckboxSelectedBg, UnsavedMarker) omitted.
 # NB: `red`/`green`/`blue`/`alpha` are exported Colors accessors — never use them as local names.
 
 push!(_CURATED, Theme(

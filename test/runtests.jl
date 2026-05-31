@@ -12,7 +12,9 @@ using TestItemRunner
 end
 
 @testitem "registry" begin
-    @test length(ImGuiThemes.THEMES) >= 50
+    @test length(ImGuiThemes._CURATED) == 8
+    @test length(ImGuiThemes._KTSU) == 38
+    @test length(ImGuiThemes.THEMES) == 93
     @test allunique(t.name for t in ImGuiThemes.THEMES)
     @test length(ImGuiThemes.theme("Cherry").colors) == 53    # ImThemes themes carry all 53 keys
     @test length(ImGuiThemes.theme("Darcula").colors) == 53
@@ -239,9 +241,8 @@ end
     using Colors
     import ImGuiThemes: Theme
 
-    # The ktsu engine lives in src/ktsu/engine.jl and is intentionally NOT yet
-    # wired into the ImGuiThemes module (themes are a later task). Load it here
-    # into this testitem's module, which already has Colors + Theme in scope.
+    # The ktsu engine lives in src/ktsu/engine.jl (included by ImGuiThemes.jl).
+    # Load it here into this testitem's module, which already has Colors + Theme in scope.
     K = @__MODULE__
     include(joinpath(pkgdir(ImGuiThemes), "src", "ktsu", "engine.jl"))
 
