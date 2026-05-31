@@ -130,34 +130,50 @@ const _picker_state = Ref{Union{Nothing,String}}(nothing)
 """
     theme_picker(; window = true, title = "ImGui Themes", state = _picker_state)
 
-Draw all themes as radio buttons that wrap to the window width; selecting one applies it
-live (one click, no dropdown). With `window = true` (default) it renders in its own imgui
-window, so a single call anywhere in an app shows a standalone theme browser; with
-`window = false` it draws the buttons inline. Must be called inside an active imgui frame.
-Returns the currently-selected theme name (or `nothing`).
+Draw the themes as radio buttons (one click, no dropdown), split into two bordered groups —
+dark and light — that each wrap to the window width. Selecting one applies it live. With
+`window = true` (default) it renders in its own imgui window, so a single call anywhere in an
+app shows a standalone theme browser; with `window = false` it draws inline. Must be called
+inside an active imgui frame. Returns the currently-selected theme name (or `nothing`).
 """
 function theme_picker(; window::Bool = true, title::AbstractString = "ImGui Themes", state::Ref = _picker_state)
     opened = window ? CImGui.Begin(title) : true
     if opened
-        style = CImGui.GetStyle()
-        spacing = unsafe_load(style.ItemSpacing).x
-        inner = unsafe_load(style.ItemInnerSpacing).x
-        frame_h = CImGui.GetFrameHeight()
-        right_x = CImGui.GetCursorScreenPos().x + CImGui.GetContentRegionAvail().x
-        radio_width(name) = frame_h + inner + CImGui.CalcTextSize(name).x
-        for (i, t) in enumerate(THEMES)
-            if CImGui.RadioButton(t.name, state[] == t.name)
-                state[] = t.name
-                apply_theme!(t.name)
-            end
-            if i < length(THEMES)  # keep the next button on this line only if it fits
-                next_x = CImGui.GetItemRectMax().x + spacing + radio_width(THEMES[i + 1].name)
-                next_x < right_x && CImGui.SameLine()
-            end
-        end
+        _theme_group("Dark", :dark, state)
+        _theme_group("Light", :light, state)
     end
     window && CImGui.End()
     state[]
+end
+
+# One bordered, auto-height child per mode, holding that mode's wrapping radio buttons.
+function _theme_group(title, m::Symbol, state::Ref)
+    flags = CImGui.ImGuiChildFlags_Borders | CImGui.ImGuiChildFlags_AutoResizeY
+    if CImGui.BeginChild(title, CImGui.ImVec2(0, 0), flags)
+        CImGui.SeparatorText(title)
+        _theme_radios([t for t in THEMES if mode(t) === m], state)
+    end
+    CImGui.EndChild()
+end
+
+# Radio buttons that wrap to the current content width (imgui's buttons-wrap pattern).
+function _theme_radios(ts, state::Ref)
+    style = CImGui.GetStyle()
+    spacing = unsafe_load(style.ItemSpacing).x
+    inner = unsafe_load(style.ItemInnerSpacing).x
+    frame_h = CImGui.GetFrameHeight()
+    right_x = CImGui.GetCursorScreenPos().x + CImGui.GetContentRegionAvail().x
+    radio_width(name) = frame_h + inner + CImGui.CalcTextSize(name).x
+    for (i, t) in enumerate(ts)
+        if CImGui.RadioButton(t.name, state[] == t.name)
+            state[] = t.name
+            apply_theme!(t.name)
+        end
+        if i < length(ts)  # keep the next button on this line only if it fits
+            next_x = CImGui.GetItemRectMax().x + spacing + radio_width(ts[i + 1].name)
+            next_x < right_x && CImGui.SameLine()
+        end
+    end
 end
 
 end # module
