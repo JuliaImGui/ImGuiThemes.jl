@@ -6,7 +6,7 @@ using Accessors
 import TOML
 import Libdl
 
-export THEMES, apply_theme!, theme_picker, set_app_icon!
+export THEMES, apply_theme!, theme_picker, set_app_icon!, FONTS, font_path
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -203,31 +203,38 @@ apply_theme!(name::AbstractString, style = CImGui.GetStyle()) = apply!(theme(nam
 
 """
 Mutable state for [`theme_picker`](@ref): the selected theme name, an editable working copy of
-its colors (tweaked live), and whether the export text box is shown.
+its colors (tweaked live), whether the export text box is shown, and the selected font plus a
+lazy cache of fonts already loaded into the atlas.
 """
 mutable struct PickerState
     selected::Union{Nothing,String}
     colors::Dict{Symbol,RGBA{Float32}}   # editable working copy of the selected theme's colors
     show_export::Bool
     apply_geometry::Bool                 # picker: apply theme geometry (true) or colors only (false)
+    font::Tuple{Symbol,Symbol}           # selected (family, variant); (:Default, :Regular) = imgui built-in
+    fonts_loaded::Dict{Tuple{Symbol,Symbol},Ptr{CImGui.lib.ImFont}}   # (family, variant) => font ptr, lazy
 end
-# 3-arg form (existing callers / tests): geometry on by default.
-PickerState(selected, colors, show_export) = PickerState(selected, colors, show_export, true)
+# Convenience ctor (PickerState is internal): geometry on, no font selected, empty font cache.
+PickerState(selected, colors, show_export, apply_geometry = true) =
+    PickerState(selected, colors, show_export, apply_geometry, (:Default, :Regular), Dict{Tuple{Symbol,Symbol},Ptr{CImGui.lib.ImFont}}())
 
 const _picker_state = PickerState(nothing, Dict{Symbol,RGBA{Float32}}(), false, true)
 
 """
-    theme_picker(; window = true, title = "ImGui Themes", state = _picker_state)
+    theme_picker(; window = true, title = "ImGui Themes", state = _picker_state, fonts = true)
 
-Draw the themes as radio buttons (one click, no dropdown), split into two bordered groups —
-dark and light — that each wrap to the window width. Selecting one applies it live. With
-`window = true` (default) it renders in its own imgui window, so a single call anywhere in an
-app shows a standalone theme browser; with `window = false` it draws inline. Must be called
-inside an active imgui frame. Returns the currently-selected theme name (or `nothing`).
+Draw a font selector (a row of radio buttons over the bundled [`FONTS`](@ref), picked one shown
+first) followed by the themes as radio buttons (one click, no dropdown), split into two bordered
+groups — dark and light — that each wrap to the window width. Selecting a theme applies it live;
+selecting a font downloads it on first use and sets it as the global default. With `window = true`
+(default) it renders in its own imgui window, so a single call anywhere in an app shows a standalone
+browser; with `window = false` it draws inline. Pass `fonts = false` to hide the font selector.
+Must be called inside an active imgui frame. Returns the currently-selected theme name (or `nothing`).
 """
-function theme_picker(; window::Bool = true, title::AbstractString = "ImGui Themes", state::PickerState = _picker_state)
+function theme_picker(; window::Bool = true, title::AbstractString = "ImGui Themes", state::PickerState = _picker_state, fonts::Bool = true)
     opened = window ? CImGui.Begin(title) : true
     if opened
+        fonts && _font_selector(state)
         geom = Ref(state.apply_geometry)
         if CImGui.Checkbox("Apply geometry", geom)
             state.apply_geometry = geom[]
@@ -260,24 +267,63 @@ _has_geometry(t::Theme) = !isempty(t.style)
 _label(t::Theme) = _has_geometry(t) ? "$(t.name) *" : t.name
 
 # Radio buttons that wrap to the current content width (imgui's buttons-wrap pattern).
-function _theme_radios(ts, state::PickerState)
+# `on_select(i)` handles a click on item i (first arg, so callers can use do-syntax);
+# `labels` are the display strings; `is_selected(i)` marks the active item.
+function _wrapping_radios(on_select, labels, is_selected)
     style = CImGui.GetStyle()
     spacing = unsafe_load(style.ItemSpacing).x
     inner = unsafe_load(style.ItemInnerSpacing).x
     frame_h = CImGui.GetFrameHeight()
     right_x = CImGui.GetCursorScreenPos().x + CImGui.GetContentRegionAvail().x
     radio_width(label) = frame_h + inner + CImGui.CalcTextSize(label).x
-    for (i, t) in enumerate(ts)
-        if CImGui.RadioButton(_label(t), state.selected == t.name)
-            state.selected = t.name
-            state.colors = copy(t.colors)   # fresh editable copy (RGBA is immutable)
-            _apply_picked!(state, t)
-        end
-        if i < length(ts)  # keep the next button on this line only if it fits
-            next_x = CImGui.GetItemRectMax().x + spacing + radio_width(_label(ts[i + 1]))
+    for (i, label) in enumerate(labels)
+        CImGui.RadioButton(label, is_selected(i)) && on_select(i)
+        if i < length(labels)  # keep the next button on this line only if it fits
+            next_x = CImGui.GetItemRectMax().x + spacing + radio_width(labels[i + 1])
             next_x < right_x && CImGui.SameLine()
         end
     end
+end
+
+function _theme_radios(ts, state::PickerState)
+    _wrapping_radios([_label(t) for t in ts], i -> state.selected == ts[i].name) do i
+        t = ts[i]
+        state.selected = t.name
+        state.colors = copy(t.colors)   # fresh editable copy (RGBA is immutable)
+        _apply_picked!(state, t)
+    end
+end
+
+# Font selector: a family row, then (if the picked family has >1 variant) a Style row of its
+# variants. Families and variants are derived from keys(FONTS), sorted alphabetically. On selection
+# the font is downloaded on first use, added to the atlas (cached in state.fonts_loaded), and set as
+# the global default so it applies everywhere next frame (dynamic fonts, Dear ImGui >= 1.92).
+_font_families() = sort(unique(fam for (fam, _) in keys(FONTS)))
+_font_variants(fam) = sort([var for (f, var) in keys(FONTS) if f === fam])
+
+function _font_selector(state::PickerState)
+    CImGui.SeparatorText("Font")
+    fams = [:Default; _font_families()]
+    _wrapping_radios([string(f) for f in fams], i -> state.font[1] === fams[i]) do i
+        _select_font!(state, fams[i], :Regular)   # picking a family resets to its Regular
+    end
+    fam = state.font[1]
+    if fam !== :Default
+        vars = _font_variants(fam)
+        if length(vars) > 1
+            CImGui.SeparatorText("Style")
+            _wrapping_radios([string(v) for v in vars], i -> state.font[2] === vars[i]) do i
+                _select_font!(state, fam, vars[i])
+            end
+        end
+    end
+end
+
+function _select_font!(state::PickerState, fam::Symbol, var::Symbol)
+    state.font = (fam, var)
+    ptr = fam === :Default ? C_NULL :
+          get!(() -> CImGui.AddFontFromFileTTF(FONTS[(fam, var)]), state.fonts_loaded, (fam, var))
+    CImGui.GetIO().FontDefault = ptr
 end
 
 # Canonical imgui color order (by ImGuiCol_ index) — shared by the editor list and export.
@@ -340,5 +386,6 @@ function _color_editors(state::PickerState)
 end
 
 include("app_icon.jl")
+include("fonts.jl")
 
 end # module

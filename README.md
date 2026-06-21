@@ -32,9 +32,29 @@ ImGuiThemes.theme_picker()                  # window = true by default
 ImGuiThemes.theme_picker(; window = false)  # or render the buttons inline
 ```
 
+### Fonts
+
+A few good fonts can be downloaded and cached on demand — nothing is fetched on install, only
+when you actually ask for a font. `ImGuiThemes.FONTS` maps a `(family, variant)` to a `FontSpec`; pass it to
+`CImGui.AddFontFromFileTTF`:
+
+```julia
+using CImGui, ImGuiThemes
+CImGui.AddFontFromFileTTF(ImGuiThemes.FONTS[(:JuliaMono, :Bold)])   # download (first time) + add to the atlas
+```
+
+For available fonts, see `ImGuiThemes.FONTS`. The live picker also has a built-in font selector  that loads and applies any of these globally.
+
+Fonts are fetched from their upstream releases (not redistributed by this package). Licenses:
+[JuliaMono](https://github.com/cormullion/juliamono) (SIL OFL 1.1),
+[DejaVu](https://dejavu-fonts.github.io) (Bitstream Vera / public-domain derivative),
+[Liberation](https://github.com/liberationfonts/liberation-fonts) (SIL OFL 1.1),
+[Roboto](https://github.com/googlefonts/roboto-3-classic) (Apache 2.0).
+
 ### Demo
 
-A runnable demo opens a real window with the picker next to imgui's demo window:
+A runnable demo opens a real window with the picker next to imgui's
+demo window:
 
 ```bash
 julia --project=examples examples/theme_picker_demo.jl

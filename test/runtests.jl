@@ -406,9 +406,11 @@ end
     @test M._label(M.theme("Paper and Ink")) == "Paper and Ink *"
     @test M._label(M.theme("Nord")) == "Nord"
 
-    # PickerState: new field + back-compat 3-arg ctor defaults geometry ON
+    # PickerState: convenience ctor defaults geometry ON, no font selected
     st = M.PickerState("Paper and Ink", copy(M.theme("Paper and Ink").colors), false)
     @test st.apply_geometry == true
+    @test st.font == (:Default, :Regular)
+    @test isempty(st.fonts_loaded)
 
     ctx = CImGui.CreateContext()
     try
@@ -446,4 +448,30 @@ end
         # other platforms: warns and no-ops
         @test (@test_logs (:warn,) set_app_icon!(@__FILE__)) === nothing
     end
+end
+
+@testitem "fonts" tags=[:network] begin
+    F = ImGuiThemes.FONTS
+    # registry keyed by (family, variant); every family has a Regular
+    @test all(k -> k isa Tuple{Symbol,Symbol}, keys(F))
+    fams = unique(first.(keys(F)))
+    @test all(fam -> haskey(F, (fam, :Regular)), fams)
+
+    # direct .ttf: downloads, caches, returns a valid TTF/OTF
+    p = font_path(F[(:DejaVuSansMono, :Regular)])
+    @test isfile(p) && filesize(p) > 0
+    @test read(p, 4) in (UInt8[0x00, 0x01, 0x00, 0x00], b"OTTO", b"true")   # ttf or otf magic
+    @test font_path(F[(:DejaVuSansMono, :Regular)]) == p                    # 2nd call: cached, same path
+
+    # a variant (different file): downloads independently
+    pv = font_path(F[(:DejaVuSans, :CondensedBold)])
+    @test isfile(pv) && pv != p && read(pv, 4) == UInt8[0x00, 0x01, 0x00, 0x00]
+
+    # archive member: extracted via system `tar`
+    pl = font_path(F[(:LiberationMono, :Bold)])
+    @test isfile(pl) && read(pl, 4) == UInt8[0x00, 0x01, 0x00, 0x00]
+
+    # integrity: a wrong sha256 fails loud
+    bad = ImGuiThemes.FontSpec(F[(:DejaVuSans, :Regular)].url, "deadbeef", nothing)
+    @test_throws ErrorException font_path(bad)
 end
