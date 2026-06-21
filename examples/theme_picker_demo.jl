@@ -14,6 +14,7 @@ CImGui.set_backend(:GlfwOpenGL3)
 function main()
     ctx = CImGui.CreateContext()
     CImGui.StyleColorsDark()
+    ImGuiThemes.set_app_icon!("/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns")
     CImGui.render(ctx; window_title = "ImGuiThemes demo", window_size = (1280, 720)) do
         ImGuiThemes.theme_picker()         # standalone window; applies the picked theme live
         CImGui.ShowDemoWindow(Ref(true))   # every widget type, so the theme is visible

@@ -4,8 +4,9 @@ using CImGui
 using Colors
 using Accessors
 import TOML
+import Libdl
 
-export THEMES, apply_theme!, theme_picker
+export THEMES, apply_theme!, theme_picker, set_app_icon!
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -337,5 +338,7 @@ function _color_editors(state::PickerState)
         end
     end
 end
+
+include("app_icon.jl")
 
 end # module

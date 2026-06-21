@@ -431,3 +431,19 @@ end
         CImGui.DestroyContext(ctx)
     end
 end
+
+@testitem "app icon" begin
+    # non-existent path errors regardless of platform
+    @test_throws ArgumentError set_app_icon!("/no/such/file.png")
+
+    if Sys.isapple()
+        icon = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns"
+        @test isfile(icon)
+        @test set_app_icon!(icon) === nothing                       # sets the dock icon, no throw
+        # an existing file AppKit can't decode as an image errors loudly
+        @test_throws ErrorException set_app_icon!(@__FILE__)
+    else
+        # other platforms: warns and no-ops
+        @test (@test_logs (:warn,) set_app_icon!(@__FILE__)) === nothing
+    end
+end
