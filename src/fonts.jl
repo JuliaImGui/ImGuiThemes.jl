@@ -113,6 +113,10 @@ const FONTS = Dict{Tuple{Symbol,Symbol},FontSpec}(
     (:LiberationMono, :Bold) => _lib("LiberationMono-Bold"),
     (:LiberationMono, :Italic) => _lib("LiberationMono-Italic"),
     (:LiberationMono, :BoldItalic) => _lib("LiberationMono-BoldItalic"),
+
+    # symbol fonts, meant to be merged; Font Awesome maps A–Z/0–9 to icons, not letters
+    (:FontAwesome, :Solid) => FontSpec("https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/webfonts/fa-solid-900.ttf", "d2f0593540b0e33ba6de255a54f272d466e31144806956bea8cfdbf7edffc9bd"),
+    (:NotoSansSymbols2, :Regular) => FontSpec("https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io@c16b117609abbe4e60b3f2bd4433bdb3d0accb2e/fonts/NotoSansSymbols2/hinted/ttf/NotoSansSymbols2-Regular.ttf", "c4a0a80f0041ce4be81e2478faad22776d23edb98ae3f0d19bd37044820ecf9d"),
 )
 
 """
@@ -158,3 +162,53 @@ size need to be passed. Returns the `Ptr{ImFont}` (use with `CImGui.PushFont` or
 """
 CImGui.AddFontFromFileTTF(atlas::Ptr{CImGui.lib.ImFontAtlas}, spec::FontSpec) = CImGui.AddFontFromFileTTF(atlas, font_path(spec))
 CImGui.AddFontFromFileTTF(spec::FontSpec) = CImGui.AddFontFromFileTTF(unsafe_load(CImGui.GetIO().Fonts), spec)
+
+"""
+    FontSource(spec; size_scale, offset)
+
+One source of a font chain. `size_scale` rescales this source against the chain's primary, and
+`offset` shifts its glyphs — `y` is the usual baseline nudge between fonts of different heights.
+"""
+@kwdef struct FontSource
+    spec::FontSpec
+    size_scale::Float64 = 1.0
+    offset::NTuple{2,Float64} = (0.0, 0.0)
+end
+FontSource(spec::FontSpec; kwargs...) = FontSource(; spec, kwargs...)
+
+"""
+    CImGui.AddFontFromFileTTF(chain::AbstractVector{FontSource}, [atlas]) -> Ptr{ImFont}
+
+Add one font combining several sources, e.g. a text font plus an icon font. The first source owns the
+font's metrics — ascent, descent, size reference — and the rest are merged in order, each supplying
+only the codepoints no earlier source has.
+
+```julia
+CImGui.AddFontFromFileTTF([
+    ImGuiThemes.FontSource(FONTS[(:DejaVuSans, :Condensed)]),
+    ImGuiThemes.FontSource(FONTS[(:FontAwesome, :Solid)]; size_scale = 0.8),
+])
+```
+"""
+function CImGui.AddFontFromFileTTF(atlas::Ptr{CImGui.lib.ImFontAtlas}, chain::AbstractVector{FontSource})
+    font = _add_source(atlas, first(chain), nothing)
+    foreach(src -> _add_source(atlas, src, font), @view chain[2:end])
+    font
+end
+CImGui.AddFontFromFileTTF(chain::AbstractVector{FontSource}) = CImGui.AddFontFromFileTTF(unsafe_load(CImGui.GetIO().Fonts), chain)
+
+# `dst === nothing` starts a new font, otherwise the source is merged into `dst`. Sizing goes through
+# ExtraSizeScale: under dynamic sizing the primary's SizePixels is 0, which disables imgui's relative
+# size path. imgui copies the config, so ours only needs to outlive the call.
+function _add_source(atlas::Ptr{CImGui.lib.ImFontAtlas}, src::FontSource, dst)
+    cfg = CImGui.lib.ImFontConfig_ImFontConfig()
+    try
+        cfg.MergeMode = !isnothing(dst)
+        isnothing(dst) || (cfg.DstFont = dst)
+        cfg.ExtraSizeScale = src.size_scale
+        cfg.GlyphOffset = CImGui.lib.ImVec2(src.offset...)
+        CImGui.AddFontFromFileTTF(atlas, font_path(src.spec), 0.0f0, cfg)
+    finally
+        CImGui.lib.ImFontConfig_destroy(cfg)
+    end
+end

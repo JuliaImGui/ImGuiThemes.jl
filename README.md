@@ -45,11 +45,24 @@ CImGui.AddFontFromFileTTF(ImGuiThemes.FONTS[(:JuliaMono, :Bold)])   # download (
 
 For available fonts, see `ImGuiThemes.FONTS`. The live picker also has a built-in font selector  that loads and applies any of these globally.
 
+To combine fonts — typically a text font plus a symbol font covering what it lacks — pass a chain of
+`FontSource`s. The first owns the font's metrics; the rest are merged in order and supply only the
+codepoints no earlier source has:
+
+```julia
+CImGui.AddFontFromFileTTF([
+    FontSource(FONTS[(:DejaVuSans, :Condensed)]),
+    FontSource(FONTS[(:NotoSansSymbols2, :Regular)]),   # ⏮ ⏹ ⏭ and friends, absent from most text fonts
+])
+```
+
 Fonts are fetched from their upstream releases (not redistributed by this package). Licenses:
 [JuliaMono](https://github.com/cormullion/juliamono) (SIL OFL 1.1),
 [DejaVu](https://dejavu-fonts.github.io) (Bitstream Vera / public-domain derivative),
 [Liberation](https://github.com/liberationfonts/liberation-fonts) (SIL OFL 1.1),
-[Roboto](https://github.com/googlefonts/roboto-3-classic) (Apache 2.0).
+[Roboto](https://github.com/googlefonts/roboto-3-classic) (Apache 2.0),
+[Noto Sans Symbols 2](https://github.com/notofonts/symbols) (SIL OFL 1.1),
+[Font Awesome Free](https://fontawesome.com) (icons CC BY 4.0, font SIL OFL 1.1).
 
 ### Demo
 

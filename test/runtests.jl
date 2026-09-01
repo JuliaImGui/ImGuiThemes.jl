@@ -452,10 +452,7 @@ end
 
 @testitem "fonts" tags=[:network] begin
     F = ImGuiThemes.FONTS
-    # registry keyed by (family, variant); every family has a Regular
-    @test all(k -> k isa Tuple{Symbol,Symbol}, keys(F))
-    fams = unique(first.(keys(F)))
-    @test all(fam -> haskey(F, (fam, :Regular)), fams)
+    @test all(k -> k isa Tuple{Symbol,Symbol}, keys(F))   # registry keyed by (family, variant)
 
     # direct .ttf: downloads, caches, returns a valid TTF/OTF
     p = font_path(F[(:DejaVuSansMono, :Regular)])
@@ -474,4 +471,18 @@ end
     # integrity: a wrong sha256 fails loud
     bad = ImGuiThemes.FontSpec(F[(:DejaVuSans, :Regular)].url, "deadbeef", nothing)
     @test_throws ErrorException font_path(bad)
+end
+
+@testitem "font chain" tags=[:network] begin
+    using CImGui
+    ctx = CImGui.CreateContext()
+    font = CImGui.AddFontFromFileTTF([
+        FontSource(FONTS[(:DejaVuSans, :Condensed)]),
+        FontSource(FONTS[(:NotoSansSymbols2, :Regular)]),
+    ])
+    infont(c) = CImGui.IsGlyphInFont(font, UInt16(c))
+    @test infont('a') && infont('▶')     # from the primary
+    @test infont('⏮') && infont('⏹') && infont('⏭')   # only the merged source has these
+    @test !infont('')              # Font Awesome PUA, not part of this chain
+    CImGui.DestroyContext(ctx)
 end

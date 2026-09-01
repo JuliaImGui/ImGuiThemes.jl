@@ -6,7 +6,7 @@ using Accessors
 import TOML
 import Libdl
 
-export THEMES, apply_theme!, theme_picker, set_app_icon!, FONTS, font_path
+export THEMES, apply_theme!, theme_picker, set_app_icon!, FONTS, font_path, FontSource
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -305,7 +305,7 @@ function _font_selector(state::PickerState)
     CImGui.SeparatorText("Font")
     fams = [:Default; _font_families()]
     _wrapping_radios([string(f) for f in fams], i -> state.font[1] === fams[i]) do i
-        _select_font!(state, fams[i], :Regular)   # picking a family resets to its Regular
+        _select_font!(state, fams[i], get(_font_variants(fams[i]), 1, :Regular))   # a family resets to its first variant
     end
     fam = state.font[1]
     if fam !== :Default
