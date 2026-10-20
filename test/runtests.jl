@@ -450,6 +450,13 @@ end
     end
 end
 
+@testitem "default font variant" begin
+    M = ImGuiThemes
+    @test M._default_variant(:DejaVuSans) === :Regular       # Regular wins over alphabetically-first Bold
+    @test M._default_variant(:Roboto) === :Regular
+    @test M._default_variant(:FontAwesome) === :Solid        # no Regular: first variant
+end
+
 @testitem "fonts" tags=[:network] begin
     F = ImGuiThemes.FONTS
     @test all(k -> k isa Tuple{Symbol,Symbol}, keys(F))   # registry keyed by (family, variant)

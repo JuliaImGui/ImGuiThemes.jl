@@ -301,11 +301,23 @@ end
 _font_families() = sort(unique(fam for (fam, _) in keys(FONTS)))
 _font_variants(fam) = sort([var for (f, var) in keys(FONTS) if f === fam])
 
+# Default to 'Regular' if the family has it, else its first variant.
+function _default_variant(fam)
+    vars = _font_variants(fam)
+    :Regular in vars ? :Regular : get(vars, 1, :Regular)
+end
+
 function _font_selector(state::PickerState)
     CImGui.SeparatorText("Font")
+    style = CImGui.GetStyle()
+    base = unsafe_load(style.FontSizeBase)
+    font_size = Ref(base * unsafe_load(style.FontScaleMain))
+    if CImGui.SliderFloat("Size", font_size, 8, 32, "%.0f px")
+        style.FontScaleMain = font_size[] / base
+    end
     fams = [:Default; _font_families()]
     _wrapping_radios([string(f) for f in fams], i -> state.font[1] === fams[i]) do i
-        _select_font!(state, fams[i], get(_font_variants(fams[i]), 1, :Regular))   # a family resets to its first variant
+        _select_font!(state, fams[i], _default_variant(fams[i]))
     end
     fam = state.font[1]
     if fam !== :Default
