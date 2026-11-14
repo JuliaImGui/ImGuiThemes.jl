@@ -445,8 +445,8 @@ end
         # an existing file AppKit can't decode as an image errors loudly
         @test_throws ErrorException set_app_icon!(@__FILE__)
     else
-        # other platforms: warns and no-ops
-        @test (@test_logs (:warn,) set_app_icon!(@__FILE__)) === nothing
+        # other platforms: silent no-op
+        @test (@test_logs set_app_icon!(@__FILE__)) === nothing
     end
 end
 

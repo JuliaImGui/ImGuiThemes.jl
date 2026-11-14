@@ -5,12 +5,12 @@
 
 Set the application icon to the image at `path`. On macOS this sets the **dock
 icon** (`NSApplication`'s `applicationIconImage`); `path` may be any format AppKit
-can decode (png, jpeg, icns, tiff, …). Currently a no-op with a warning on
-non-macOS platforms. Returns `nothing`.
+can decode (png, jpeg, icns, tiff, …). Currently a silent no-op on other
+platforms. Returns `nothing`.
 """
 function set_app_icon!(path::AbstractString)
     isfile(path) || throw(ArgumentError("no such file: $path"))
-    Sys.isapple() || return (@warn "set_app_icon! is only implemented on macOS for now"; nothing)
+    Sys.isapple() || return nothing
     _set_dock_icon_macos(abspath(path))
 end
 
