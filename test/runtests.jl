@@ -476,14 +476,14 @@ end
     @test isfile(pl) && read(pl, 4) == UInt8[0x00, 0x01, 0x00, 0x00]
 
     # integrity: a wrong sha256 fails loud
-    bad = ImGuiThemes.FontSpec(F[(:DejaVuSans, :Regular)].url, "deadbeef", nothing)
+    bad = ImGuiThemes.RemoteFont(F[(:DejaVuSans, :Regular)].url, "deadbeef", nothing)
     @test_throws ErrorException font_path(bad)
 end
 
 @testitem "font chain" tags=[:network] begin
     using CImGui
     ctx = CImGui.CreateContext()
-    font = CImGui.AddFontFromFileTTF([
+    font = add_font!([
         FontSource(FONTS[(:DejaVuSans, :Condensed)]),
         FontSource(FONTS[(:NotoSansSymbols2, :Regular)]),
     ])
@@ -491,5 +491,24 @@ end
     @test infont('a') && infont('▶')     # from the primary
     @test infont('⏮') && infont('⏹') && infont('⏭')   # only the merged source has these
     @test !infont('')              # Font Awesome PUA, not part of this chain
+    CImGui.DestroyContext(ctx)
+end
+
+@testitem "font from bytes, owned by the atlas" tags=[:network] begin
+    using CImGui
+    remote = FONTS[(:DejaVuSans, :Condensed)]
+    src = FontSource(remote)
+    @test src.bytes == read(font_path(remote))
+    for _ in 1:2   # the atlas frees its copy on destroy; a second context gets a fresh one
+        ctx = CImGui.CreateContext()
+        font = add_font!(src)
+        @test CImGui.IsGlyphInFont(font, UInt16('∉')) && CImGui.IsGlyphInFont(font, UInt16('→'))
+        CImGui.DestroyContext(ctx)
+    end
+    ctx = CImGui.CreateContext()
+    garbage = FontSource(zeros(UInt8, 1000))
+    @test_throws ErrorException add_font!(garbage)   # not a font: imgui refuses it
+    atlas = unsafe_load(CImGui.GetIO().Fonts)
+    @test_throws ErrorException add_font!(atlas, [src, garbage])   # nor merges it
     CImGui.DestroyContext(ctx)
 end

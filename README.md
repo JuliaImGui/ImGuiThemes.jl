@@ -35,22 +35,26 @@ ImGuiThemes.theme_picker(; window = false)  # or render the buttons inline
 ### Fonts
 
 A few good fonts can be downloaded and cached on demand — nothing is fetched on install, only
-when you actually ask for a font. `ImGuiThemes.FONTS` maps a `(family, variant)` to a `FontSpec`; pass it to
-`CImGui.AddFontFromFileTTF`:
+when you actually ask for a font. `ImGuiThemes.FONTS` maps a `(family, variant)` to a `RemoteFont`. A `FontSource`
+holds a font's bytes — of a `RemoteFont` (downloaded on first use), or any TTF/OTF, `FontSource(read("my.ttf"))` —
+and `add_font!` adds it to the atlas:
 
 ```julia
 using CImGui, ImGuiThemes
-CImGui.AddFontFromFileTTF(ImGuiThemes.FONTS[(:JuliaMono, :Bold)])   # download (first time) + add to the atlas
+add_font!(FontSource(FONTS[(:JuliaMono, :Bold)]))   # download (first time) + add to the atlas
 ```
+
+Adding a `FontSource` does no I/O, so one made at load time — `const FONT = FontSource(FONTS[...])` — embeds
+just that font in the compiled program; call `add_font!(FONT)` at run time then.
 
 For available fonts, see `ImGuiThemes.FONTS`. The live picker also has a built-in font selector  that loads and applies any of these globally.
 
 To combine fonts — typically a text font plus a symbol font covering what it lacks — pass a chain of
 `FontSource`s. The first owns the font's metrics; the rest are merged in order and supply only the
-codepoints no earlier source has:
+codepoints no earlier source has. `size_scale` rescales a source against the first:
 
 ```julia
-CImGui.AddFontFromFileTTF([
+add_font!([
     FontSource(FONTS[(:DejaVuSans, :Condensed)]),
     FontSource(FONTS[(:NotoSansSymbols2, :Regular)]),   # ⏮ ⏹ ⏭ and friends, absent from most text fonts
 ])

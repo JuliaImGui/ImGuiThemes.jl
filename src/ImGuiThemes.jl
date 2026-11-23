@@ -6,7 +6,7 @@ using Accessors
 import TOML
 import Libdl
 
-export THEMES, apply_theme!, theme_picker, set_app_icon!, FONTS, font_path, FontSource
+export THEMES, apply_theme!, theme_picker, set_app_icon!, FONTS, font_path, FontSource, add_font!
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -36,7 +36,7 @@ Theme(; name, author = "", description = "", tags, date = "", style = Dict{Symbo
 mode(t::Theme) = "light" in t.tags ? :light : :dark
 
 # ---------------------------------------------------------------------------
-# Lookup tables (target current imgui / CImGui 7 — no backward compatibility)
+# Lookup tables (target current imgui — no backward compatibility)
 # ---------------------------------------------------------------------------
 
 "ImThemes' (older-imgui) color names that imgui has since renamed → current name."
@@ -297,7 +297,7 @@ end
 # Font selector: a family row, then (if the picked family has >1 variant) a Style row of its
 # variants. Families and variants are derived from keys(FONTS), sorted alphabetically. On selection
 # the font is downloaded on first use, added to the atlas (cached in state.fonts_loaded), and set as
-# the global default so it applies everywhere next frame (dynamic fonts, Dear ImGui >= 1.92).
+# the global default, which applies everywhere from the next frame.
 _font_families() = sort(unique(fam for (fam, _) in keys(FONTS)))
 _font_variants(fam) = sort([var for (f, var) in keys(FONTS) if f === fam])
 
@@ -334,7 +334,7 @@ end
 function _select_font!(state::PickerState, fam::Symbol, var::Symbol)
     state.font = (fam, var)
     ptr = fam === :Default ? C_NULL :
-          get!(() -> CImGui.AddFontFromFileTTF(FONTS[(fam, var)]), state.fonts_loaded, (fam, var))
+          get!(() -> add_font!(FontSource(FONTS[(fam, var)])), state.fonts_loaded, (fam, var))
     CImGui.GetIO().FontDefault = ptr
 end
 
